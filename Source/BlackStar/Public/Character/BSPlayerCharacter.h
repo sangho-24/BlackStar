@@ -8,6 +8,7 @@
 class UInputAction;
 class USpringArmComponent;
 class UCameraComponent;
+class UAnimMontage;
 
 UCLASS()
 class BLACKSTAR_API ABSPlayerCharacter : public ABSBaseCharacter
@@ -57,6 +58,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|Zoom")
 	float ZoomInterpSpeed = 12.0f;
 
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> NextComboMontage = nullptr;
+
+	FName NextComboSection = NAME_None;
+
 	bool bIsZoomInterpolating = false;
 
 protected:
@@ -73,6 +79,11 @@ protected:
 	void LockOnAction();
 
 public:
+	virtual void SetNextComboMontage(UAnimMontage* Montage) override;
+	virtual UAnimMontage* GetNextComboMontage() const override;
+	virtual void SetNextComboSection(FName SectionName) override;
+	virtual FName GetNextComboSection() const override;
+
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };

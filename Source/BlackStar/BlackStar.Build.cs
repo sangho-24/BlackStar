@@ -21,26 +21,20 @@ public class BlackStar : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"BlackStar",
-			"BlackStar/Variant_Platforming",
-			"BlackStar/Variant_Platforming/Animation",
 			"BlackStar/Variant_Combat",
 			"BlackStar/Variant_Combat/AI",
 			"BlackStar/Variant_Combat/Animation",
 			"BlackStar/Variant_Combat/Gameplay",
 			"BlackStar/Variant_Combat/Interfaces",
-			"BlackStar/Variant_Combat/UI",
-			"BlackStar/Variant_SideScrolling",
-			"BlackStar/Variant_SideScrolling/AI",
-			"BlackStar/Variant_SideScrolling/Gameplay",
-			"BlackStar/Variant_SideScrolling/Interfaces",
-			"BlackStar/Variant_SideScrolling/UI"
+			"BlackStar/Variant_Combat/UI"
 		});
 
 		// Uncomment if you are using Slate UI

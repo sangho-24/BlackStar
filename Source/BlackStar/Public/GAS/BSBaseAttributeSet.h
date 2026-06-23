@@ -38,6 +38,10 @@ public:
 	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, MagicPower)
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
+	FGameplayAttributeData AttackPower;
+	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, AttackPower)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
 	FGameplayAttributeData Defense;
 	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, Defense)
 

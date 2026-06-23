@@ -1,10 +1,14 @@
 #include "Character/BSPlayerCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
+#include "GAS/BSAbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Utility/BSGameplayTags.h"
 
 ABSPlayerCharacter::ABSPlayerCharacter()
 {
@@ -145,8 +149,35 @@ void ABSPlayerCharacter::StopJumpingAction()
 
 void ABSPlayerCharacter::BasicSkillAction()
 {
+	UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent();
+	if (!BSASC)
+	{
+		return;
+	}
+
+	BSASC->AbilityInputTagPressed(BSGameplayTags::Input_BasicAttack);
 }
 
 void ABSPlayerCharacter::LockOnAction()
 {
+}
+
+void ABSPlayerCharacter::SetNextComboMontage(UAnimMontage* Montage)
+{
+	NextComboMontage = Montage;
+}
+
+UAnimMontage* ABSPlayerCharacter::GetNextComboMontage() const
+{
+	return NextComboMontage;
+}
+
+void ABSPlayerCharacter::SetNextComboSection(FName SectionName)
+{
+	NextComboSection = SectionName;
+}
+
+FName ABSPlayerCharacter::GetNextComboSection() const
+{
+	return NextComboSection;
 }
