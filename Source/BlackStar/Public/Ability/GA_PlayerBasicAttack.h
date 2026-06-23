@@ -19,6 +19,7 @@ protected:
 
 protected:
 	virtual bool StartAttack(const FGameplayEventData* TriggerEventData) override;
+	virtual void FaceAttackDirection() override;
 	void RegisterComboEventTasks();
 	void PlayNextCombo();
 

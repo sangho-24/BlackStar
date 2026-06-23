@@ -66,10 +66,16 @@ bool UGA_AttackBase::StartAttack(const FGameplayEventData* TriggerEventData)
 		return false;
 	}
 
-	AttackTarget = ResolveAttackTarget(TriggerEventData);
-	FaceTarget(AttackTarget);
+	AttackTarget = ResolveAttackTarget();
+	if (AttackTarget)
+	{
+		FaceTarget(AttackTarget);
+	}
+	else
+	{
+		FaceAttackDirection();
+	}
 	HitActors.Empty();
-
 	PlayMontage(SkillData.Montage, SkillData.StartSection);
 	RegisterCommonEventTasks();
 
@@ -333,26 +339,15 @@ void UGA_AttackBase::OnSpawnProjectile(FGameplayEventData Payload)
 	}
 }
 
-AActor* UGA_AttackBase::ResolveAttackTarget(const FGameplayEventData* TriggerEventData) const
+AActor* UGA_AttackBase::ResolveAttackTarget() const
 {
-	if (TriggerEventData && TriggerEventData->Target.Get())
-	{
-		return const_cast<AActor*>(TriggerEventData->Target.Get());
-	}
-
 	AActor* AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
 	const IAbilityAnimationInterface* AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
 	if (!AnimChar)
 	{
 		return nullptr;
 	}
-
-	if (AActor* LockedTarget = AnimChar->GetLockedOnTarget())
-	{
-		return LockedTarget;
-	}
-
-	return AnimChar->GetNearestTarget();
+	return AnimChar->GetCombatTarget();
 }
 
 void UGA_AttackBase::FaceTarget(AActor* TargetActor)
@@ -373,21 +368,12 @@ void UGA_AttackBase::FaceTarget(AActor* TargetActor)
 	FRotator NewRotation = Character->GetActorRotation();
 	NewRotation.Yaw = ToTarget.Rotation().Yaw;
 	Character->SetActorRotation(NewRotation);
-	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
-	Character->bUseControllerRotationYaw = false;
 }
 
-void UGA_AttackBase::RestoreMovementRotation()
+void UGA_AttackBase::FaceAttackDirection()
 {
-	ACharacter* Character = CurrentActorInfo ? Cast<ACharacter>(CurrentActorInfo->AvatarActor.Get()) : nullptr;
-	if (!Character)
-	{
-		return;
-	}
-
-	Character->GetCharacterMovement()->bOrientRotationToMovement = true;
-	Character->bUseControllerRotationYaw = false;
 }
+
 
 void UGA_AttackBase::EndAbility(
 	const FGameplayAbilitySpecHandle Handle,
@@ -398,7 +384,6 @@ void UGA_AttackBase::EndAbility(
 {
 	StopMeleeTrace();
 	HitActors.Empty();
-	RestoreMovementRotation();
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }

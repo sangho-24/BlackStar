@@ -4,6 +4,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Interface/IAbilityAnimationInterface.h"
 #include "Utility/BSGameplayTags.h"
+#include "GameFramework/Character.h"
 
 UGA_PlayerBasicAttack::UGA_PlayerBasicAttack()
 {
@@ -28,6 +29,26 @@ bool UGA_PlayerBasicAttack::StartAttack(const FGameplayEventData* TriggerEventDa
 	}
 
 	return bStarted;
+}
+
+void UGA_PlayerBasicAttack::FaceAttackDirection()
+{
+	ACharacter* Character = CurrentActorInfo ? Cast<ACharacter>(CurrentActorInfo->AvatarActor.Get()) : nullptr;
+	if (!Character)
+	{
+		return;
+	}
+
+	AController* Controller = Character->GetController();
+	if (!Controller)
+	{
+		return;
+	}
+
+	const FRotator ControlRotation = Controller->GetControlRotation();
+	const FRotator TargetRotation(0.0f, ControlRotation.Yaw, 0.0f);
+
+	Character->SetActorRotation(TargetRotation);
 }
 
 void UGA_PlayerBasicAttack::RegisterComboEventTasks()
@@ -86,8 +107,15 @@ void UGA_PlayerBasicAttack::PlayNextCombo()
 	bSaveCombo = false;
 	bComboTransitioning = true;
 
-	AttackTarget = ResolveAttackTarget(nullptr);
-	FaceTarget(AttackTarget);
+	AttackTarget = ResolveAttackTarget();
+	if (AttackTarget)
+	{
+		FaceTarget(AttackTarget);
+	}
+	else
+	{
+		FaceAttackDirection();
+	}
 
 	const FName NextSection = AnimChar->GetNextComboSection();
 	UAnimMontage* NextMontage = AnimChar->GetNextComboMontage();

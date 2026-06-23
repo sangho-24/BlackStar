@@ -23,9 +23,7 @@ public:
 	virtual void SetNextComboSection(FName SectionName) {}
 	virtual FName GetNextComboSection() const { return NAME_None; }
 
-	virtual AActor* GetLockedOnTarget() const { return nullptr; }
-	virtual AActor* GetNearestTarget() const { return nullptr; }
-	virtual void SetNearestTarget() {}
+	virtual AActor* GetCombatTarget() const { return nullptr; }
 
 	virtual void SetProjectileData(const FProjectileData& Data) {}
 	virtual FProjectileData GetProjectileData() const { return FProjectileData(); }

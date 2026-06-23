@@ -74,7 +74,7 @@ protected:
 	UFUNCTION() virtual void OnMeleeTraceEnd(FGameplayEventData Payload);
 	UFUNCTION() virtual void OnSpawnProjectile(FGameplayEventData Payload);
 
-	virtual AActor* ResolveAttackTarget(const FGameplayEventData* TriggerEventData) const;
+	virtual AActor* ResolveAttackTarget() const;
 	virtual void FaceTarget(AActor* TargetActor);
-	virtual void RestoreMovementRotation();
+	virtual void FaceAttackDirection();
 };

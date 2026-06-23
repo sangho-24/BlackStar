@@ -15,13 +15,8 @@ void UANS_RotateToTarget::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSeq
 	{
 		return;
 	}
-
 	CachedOwner = Owner;
-	CachedTarget = AnimChar->GetLockedOnTarget();
-	if (!CachedTarget.IsValid())
-	{
-		CachedTarget = AnimChar->GetNearestTarget();
-	}
+	CachedTarget = AnimChar->GetCombatTarget();
 }
 
 void UANS_RotateToTarget::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)

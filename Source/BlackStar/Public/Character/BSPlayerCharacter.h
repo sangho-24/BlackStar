@@ -19,6 +19,7 @@ public:
 	ABSPlayerCharacter();
 
 protected:
+	// ===== 입력 관련 =====
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
 	TObjectPtr<UInputAction> MoveInput;
 
@@ -37,6 +38,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
 	TObjectPtr<UInputAction> BasicSkillInput;
 
+	// ===== 카메라 관련 =====
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
@@ -65,6 +67,39 @@ protected:
 
 	bool bIsZoomInterpolating = false;
 
+	// ===== 락온 관련 =====
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LockOn")
+	TObjectPtr<AActor> LockOnTarget = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	float LockOnSearchRadius = 1500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	float LockOnMaxAngle = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	float LockOnAngleWeight = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	float LockOnDistanceWeight = 0.01f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	float LockOnInterpSpeed = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	TEnumAsByte<ECollisionChannel> LockOnObjectChannel = ECC_Pawn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	TEnumAsByte<ECollisionChannel> LockOnTraceChannel = ECC_Visibility;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Debug")
+	bool bDrawLockOnDebug = false;
+	
+	FTimerHandle LockOnUpdateTimerHandle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
+	float LockOnUpdateInterval = 0.5f;
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -77,8 +112,19 @@ protected:
 	void StopJumpingAction();
 	void BasicSkillAction();
 	void LockOnAction();
+	
+	void ClearLockOn();
+	void UpdateLockOnTarget();
+	AActor* FindBestLockOnTarget() const;
+	bool IsLockOnTargetable(AActor* Candidate) const;
+	bool HasLineOfSightToTarget(AActor* Candidate) const;
+	void StartLockOnUpdateTimer();
+	void StopLockOnUpdateTimer();
 
 public:
+	// ===== 인터페이스 함수 =====
+	virtual AActor* GetCombatTarget() const override;
+	
 	virtual void SetNextComboMontage(UAnimMontage* Montage) override;
 	virtual UAnimMontage* GetNextComboMontage() const override;
 	virtual void SetNextComboSection(FName SectionName) override;

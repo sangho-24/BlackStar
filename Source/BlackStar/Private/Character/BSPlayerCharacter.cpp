@@ -9,6 +9,8 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Utility/BSGameplayTags.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/OverlapResult.h"
 
 ABSPlayerCharacter::ABSPlayerCharacter()
 {
@@ -52,7 +54,28 @@ void ABSPlayerCharacter::BeginPlay()
 void ABSPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
+	// 락온 카메라 보간
+	if (LockOnTarget && Controller)
+	{
+		const FVector ToTarget = LockOnTarget->GetActorLocation() - GetActorLocation();
+		if (!ToTarget.IsNearlyZero())
+		{
+			FRotator TargetRotation = ToTarget.Rotation();
+			TargetRotation.Pitch -= 30.0f;
 
+			const FRotator CurrentRotation = Controller->GetControlRotation();
+			const FRotator NewRotation = FMath::RInterpTo(
+				CurrentRotation,
+				TargetRotation,
+				DeltaTime,
+				LockOnInterpSpeed
+			);
+
+			Controller->SetControlRotation(NewRotation);
+		}
+	}
+	// 카메라 줌 보간
 	if (bIsZoomInterpolating && CameraBoom)
 	{
 		CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, DesiredArmLength, DeltaTime, ZoomInterpSpeed);
@@ -160,6 +183,241 @@ void ABSPlayerCharacter::BasicSkillAction()
 
 void ABSPlayerCharacter::LockOnAction()
 {
+	if (LockOnTarget)
+	{
+		ClearLockOn();
+		return;
+	}
+	LockOnTarget = FindBestLockOnTarget();
+	if (LockOnTarget)
+	{
+		StartLockOnUpdateTimer();
+	}
+}
+
+void ABSPlayerCharacter::ClearLockOn()
+{
+	LockOnTarget = nullptr;
+	StopLockOnUpdateTimer();
+}
+
+void ABSPlayerCharacter::UpdateLockOnTarget()
+{
+	if (!LockOnTarget)
+	{
+		return;
+	}
+
+	if (!IsValid(LockOnTarget))
+	{
+		ClearLockOn();
+		return;
+	}
+
+	const float Distance = FVector::Dist(GetActorLocation(), LockOnTarget->GetActorLocation());
+	if (Distance > LockOnSearchRadius)
+	{
+		ClearLockOn();
+		return;
+	}
+
+	if (!HasLineOfSightToTarget(LockOnTarget))
+	{
+		ClearLockOn();
+	}
+}
+
+AActor* ABSPlayerCharacter::FindBestLockOnTarget() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	struct FLockOnCandidate
+	{
+		TWeakObjectPtr<AActor> Actor;
+		float Score = 0.0f;
+	};
+	
+	const FVector SearchLocation = GetActorLocation();
+
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(LockOnObjectChannel);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	const bool bHasOverlap = World->OverlapMultiByObjectType(
+		Overlaps,
+		SearchLocation,
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(LockOnSearchRadius),
+		QueryParams
+	);
+
+	if (bDrawLockOnDebug)
+	{
+		DrawDebugSphere(World, SearchLocation, LockOnSearchRadius, 32, FColor::Cyan, false, 1.0f);
+	}
+
+	if (!bHasOverlap)
+	{
+		return nullptr;
+	}
+
+	const FVector ViewLocation = FollowCamera ? FollowCamera->GetComponentLocation() : GetActorLocation();
+	const FVector ViewForward = FollowCamera ? FollowCamera->GetForwardVector() : GetActorForwardVector();
+	const float MinDot = FMath::Cos(FMath::DegreesToRadians(LockOnMaxAngle));
+
+	TArray<FLockOnCandidate> Candidates;
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		AActor* Candidate = Overlap.GetActor();
+		if (!Candidate || Candidate == this)
+		{
+			continue;
+		}
+
+		if (!IsLockOnTargetable(Candidate))
+		{
+			continue;
+		}
+
+		const FVector TargetLocation = Candidate->GetActorLocation();
+		const FVector ToTarget = TargetLocation - ViewLocation;
+		const float Distance = ToTarget.Size();
+
+		if (Distance <= KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		const FVector Direction = ToTarget / Distance;
+		const float Dot = FVector::DotProduct(ViewForward, Direction);
+
+		if (Dot < MinDot)
+		{
+			continue;
+		}
+		// 점수 낮을수록 우선순위. Dot점수 최고점 0으로.
+		const float AngleScore = 1.0f - Dot;
+		const float Score = AngleScore * LockOnAngleWeight + Distance * LockOnDistanceWeight;
+		Candidates.Add({ Candidate, Score });
+	}
+
+	Candidates.Sort([](const FLockOnCandidate& A, const FLockOnCandidate& B)
+	{
+		return A.Score < B.Score;
+	});
+
+	for (const FLockOnCandidate& Candidate : Candidates)
+	{
+		AActor* CandidateActor = Candidate.Actor.Get();
+		if (!CandidateActor)
+		{
+			continue;
+		}
+
+		if (HasLineOfSightToTarget(CandidateActor))
+		{
+			return CandidateActor;
+		}
+	}
+
+	return nullptr;
+}
+
+
+bool ABSPlayerCharacter::IsLockOnTargetable(AActor* Candidate) const
+{
+	if (!Candidate || Candidate == this)
+	{
+		return false;
+	}
+
+	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
+bool ABSPlayerCharacter::HasLineOfSightToTarget(AActor* Candidate) const
+{
+	if (!Candidate)
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	const FVector Start = FollowCamera ? FollowCamera->GetComponentLocation() : GetActorLocation();
+	const FVector End = Candidate->GetActorLocation();
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	FHitResult HitResult;
+	const bool bHit = World->LineTraceSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		LockOnTraceChannel,
+		QueryParams
+	);
+
+	const bool bHasSight = !bHit || HitResult.GetActor() == Candidate;
+
+	if (bDrawLockOnDebug)
+	{
+		DrawDebugLine(World, Start, End, bHasSight ? FColor::Green : FColor::Red, false, 1.0f, 0, 1.5f);
+	}
+
+	return bHasSight;
+}
+
+void ABSPlayerCharacter::StartLockOnUpdateTimer()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	World->GetTimerManager().SetTimer(
+		LockOnUpdateTimerHandle,
+		this,
+		&ABSPlayerCharacter::UpdateLockOnTarget,
+		LockOnUpdateInterval,
+		true
+	);
+}
+
+void ABSPlayerCharacter::StopLockOnUpdateTimer()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	World->GetTimerManager().ClearTimer(LockOnUpdateTimerHandle);
+}
+
+AActor* ABSPlayerCharacter::GetCombatTarget() const
+{
+	return LockOnTarget;
 }
 
 void ABSPlayerCharacter::SetNextComboMontage(UAnimMontage* Montage)
