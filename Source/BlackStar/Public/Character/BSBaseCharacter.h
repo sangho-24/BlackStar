@@ -40,13 +40,26 @@ protected:
 
 	FMeleeTraceData CachedMeleeTraceData;
 	FProjectileData CachedProjectileData;
+	
+	bool bIsTurning = false;
+	FRotator TurnTargetRotation = FRotator::ZeroRotator;
+	float CurrentTurnSpeed = 720.0f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Turning")
+	float TurnTolerance = 0.5f;
 
 protected:
 	virtual void BeginPlay() override;
+	
+	void UpdateTurning(float DeltaTime);
 
 public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+	void StartTurning(const FRotator& TargetRotation, float TurnSpeed = 720.0f);
+	void StopTurning();
+	bool IsTurning() const { return bIsTurning; }
 
 	// 인라인 함수
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;

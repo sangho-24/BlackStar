@@ -34,9 +34,33 @@ void ABSBaseCharacter::BeginPlay()
 	}
 }
 
+void ABSBaseCharacter::UpdateTurning(float DeltaTime)
+{
+	if (!bIsTurning)
+		return;
+	
+	const FRotator NewRotation = FMath::RInterpConstantTo(
+	GetActorRotation(),
+	TurnTargetRotation,
+	DeltaTime,
+	CurrentTurnSpeed);
+	SetActorRotation(FRotator(0.0f, NewRotation.Yaw, 0.0f));
+	
+	const float RemainingAngle = FMath::Abs(
+	FMath::FindDeltaAngleDegrees(
+		NewRotation.Yaw,
+		TurnTargetRotation.Yaw));
+	if (RemainingAngle <= TurnTolerance)
+	{
+		SetActorRotation(TurnTargetRotation);
+		StopTurning();
+	}
+}
+
 void ABSBaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	UpdateTurning(DeltaTime);
 
 }
 
@@ -44,6 +68,25 @@ void ABSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+void ABSBaseCharacter::StartTurning(const FRotator& TargetRotation, float TurnSpeed)
+{
+	TurnTargetRotation = FRotator(0.0f, TargetRotation.Yaw, 0.0f);
+	CurrentTurnSpeed = TurnSpeed;
+
+	if (CurrentTurnSpeed <= 0.0f)
+	{
+		SetActorRotation(TurnTargetRotation);
+		bIsTurning = false;
+		return;
+	}
+	bIsTurning = true;
+}
+
+void ABSBaseCharacter::StopTurning()
+{
+	bIsTurning = false;
 }
 
 UAbilitySystemComponent* ABSBaseCharacter::GetAbilitySystemComponent() const

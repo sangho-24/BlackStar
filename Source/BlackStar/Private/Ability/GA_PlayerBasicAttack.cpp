@@ -5,6 +5,9 @@
 #include "Interface/IAbilityAnimationInterface.h"
 #include "Utility/BSGameplayTags.h"
 #include "GameFramework/Character.h"
+#include "Character/BSPlayerCharacter.h"
+#include "TimerManager.h"
+
 
 UGA_PlayerBasicAttack::UGA_PlayerBasicAttack()
 {
@@ -33,7 +36,7 @@ bool UGA_PlayerBasicAttack::StartAttack(const FGameplayEventData* TriggerEventDa
 
 void UGA_PlayerBasicAttack::FaceAttackDirection()
 {
-	ACharacter* Character = CurrentActorInfo ? Cast<ACharacter>(CurrentActorInfo->AvatarActor.Get()) : nullptr;
+	ABSPlayerCharacter* Character = CurrentActorInfo ? Cast<ABSPlayerCharacter>(CurrentActorInfo->AvatarActor.Get()) : nullptr;
 	if (!Character)
 	{
 		return;
@@ -45,10 +48,47 @@ void UGA_PlayerBasicAttack::FaceAttackDirection()
 		return;
 	}
 
+	const FVector2D MoveInput = Character->GetCurrentMoveInput();
+	if (MoveInput.IsNearlyZero())
+	{
+		// StopAttackRotation();
+		return;
+	}
 	const FRotator ControlRotation = Controller->GetControlRotation();
-	const FRotator TargetRotation(0.0f, ControlRotation.Yaw, 0.0f);
+	const FRotator CameraYawRotation(0.0f, ControlRotation.Yaw, 0.0f);
+	
+	const FVector CameraForward =
+	FRotationMatrix(CameraYawRotation).GetUnitAxis(EAxis::X);
 
-	Character->SetActorRotation(TargetRotation);
+	const FVector CameraRight =
+		FRotationMatrix(CameraYawRotation).GetUnitAxis(EAxis::Y);
+	
+	// 정규화 전(1,0,-1)
+	FVector InputDirection =
+	CameraForward * MoveInput.Y +
+	CameraRight * MoveInput.X;
+
+	InputDirection.Z = 0.0f;
+	InputDirection.Normalize();
+	
+	const float CurrentYaw = Character->GetActorRotation().Yaw;
+	const float DesiredYaw = InputDirection.Rotation().Yaw;
+	
+	// 현재 방향에서 목표 방향까지의 최단 부호 각도
+	const float DesiredYawDelta =
+		FMath::FindDeltaAngleDegrees(CurrentYaw, DesiredYaw);
+	// 한 번에 돌 수 있는 총 회전각을 제한
+	const float ClampedYawDelta = FMath::Clamp(
+		DesiredYawDelta,
+		-MaxAttackTurnAngle,
+		MaxAttackTurnAngle);
+
+	FRotator AttackTargetRotation = FRotator(
+		0.0f,
+		CurrentYaw + ClampedYawDelta,
+		0.0f);
+	
+	Character->StartTurning(AttackTargetRotation,AttackTurnSpeed);
 }
 
 void UGA_PlayerBasicAttack::RegisterComboEventTasks()

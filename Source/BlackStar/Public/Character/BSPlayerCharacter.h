@@ -37,6 +37,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
 	TObjectPtr<UInputAction> BasicSkillInput;
+	
+	FVector2D CurrentMoveInput = FVector2D::ZeroVector;
 
 	// ===== 카메라 관련 =====
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
@@ -106,6 +108,7 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	void MoveAction(const FInputActionValue& Value);
+	void StopMoveAction(const FInputActionValue& Value);
 	void LookAction(const FInputActionValue& Value);
 	void ZoomAction(const FInputActionValue& Value);
 	void JumpAction();
@@ -122,6 +125,8 @@ protected:
 	void StopLockOnUpdateTimer();
 
 public:
+
+	FVector2D GetCurrentMoveInput() const { return CurrentMoveInput; }
 	// ===== 인터페이스 함수 =====
 	virtual AActor* GetCombatTarget() const override;
 	

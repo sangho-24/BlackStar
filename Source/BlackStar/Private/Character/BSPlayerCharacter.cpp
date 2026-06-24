@@ -100,6 +100,8 @@ void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	if (MoveInput)
 	{
 		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Triggered, this, &ABSPlayerCharacter::MoveAction);
+		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Completed,this, &ABSPlayerCharacter::StopMoveAction);
+		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Canceled,this, &ABSPlayerCharacter::StopMoveAction);
 	}
 	if (LookInput)
 	{
@@ -127,6 +129,7 @@ void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 void ABSPlayerCharacter::MoveAction(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
+	CurrentMoveInput = MovementVector;
 	if (!Controller)
 	{
 		return;
@@ -139,6 +142,11 @@ void ABSPlayerCharacter::MoveAction(const FInputActionValue& Value)
 
 	AddMovementInput(ForwardDirection, MovementVector.Y);
 	AddMovementInput(RightDirection, MovementVector.X);
+}
+
+void ABSPlayerCharacter::StopMoveAction(const FInputActionValue& Value)
+{
+	CurrentMoveInput = FVector2D::ZeroVector;
 }
 
 void ABSPlayerCharacter::LookAction(const FInputActionValue& Value)
