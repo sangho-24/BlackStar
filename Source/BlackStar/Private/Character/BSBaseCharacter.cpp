@@ -3,6 +3,9 @@
 #include "GAS/BSAbilitySet.h"
 #include "GAS/BSBaseAttributeSet.h"
 #include "GameplayAbilitySpec.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/World.h"
+#include "UI/FloatingDamageActor.h"
 
 ABSBaseCharacter::ABSBaseCharacter()
 {
@@ -126,6 +129,31 @@ FMeleeTraceData ABSBaseCharacter::GetMeleeTraceData() const
 
 void ABSBaseCharacter::SpawnFloatingDamage(const float Amount, const bool bIsHeal, const bool bIsCritical)
 {
+	if (!FloatingDamageActorClass || Amount <= 0.0f)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	const float CapsuleHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	FVector SpawnLocation = GetActorLocation() + FVector(0.0f, 0.0f, CapsuleHalfHeight);
+
+	SpawnLocation.X += FMath::RandRange(-FloatingDamageRandomRadius,FloatingDamageRandomRadius);
+
+	SpawnLocation.Y += FMath::RandRange(-FloatingDamageRandomRadius,FloatingDamageRandomRadius);
+
+	AFloatingDamageActor* DamageActor = World->SpawnActor<AFloatingDamageActor>(
+			FloatingDamageActorClass, SpawnLocation,FRotator::ZeroRotator);
+
+	if (DamageActor)
+	{
+		DamageActor->Initialize(Amount, bIsHeal, bIsCritical);
+	}
 }
 
 void ABSBaseCharacter::Death(AActor* Killer)

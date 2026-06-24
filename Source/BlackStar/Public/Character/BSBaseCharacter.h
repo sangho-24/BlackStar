@@ -13,6 +13,7 @@ class UAbilitySystemComponent;
 class UBSBaseAttributeSet;
 class UBSAbilitySet;
 class UGameplayAbility;
+class AFloatingDamageActor;
 
 UCLASS()
 class BLACKSTAR_API ABSBaseCharacter : public ACharacter, public IAbilitySystemInterface, public IAbilityAnimationInterface, public ICombatInterface
@@ -45,8 +46,14 @@ protected:
 	FRotator TurnTargetRotation = FRotator::ZeroRotator;
 	float CurrentTurnSpeed = 720.0f;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Movement|Turning")
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Setup")
 	float TurnTolerance = 0.5f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Setup")
+	TSubclassOf<AFloatingDamageActor> FloatingDamageActorClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Setup")
+	float FloatingDamageRandomRadius = 30.0f;
 
 protected:
 	virtual void BeginPlay() override;

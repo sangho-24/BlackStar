@@ -249,13 +249,13 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor* TargetActor, const FHitResult& Hit
 	if (ActiveTraceData.HitCueTag.IsValid())
 	{
 		FGameplayCueParameters CueParameters;
+		CueParameters.EffectContext = ContextHandle;
 		CueParameters.Location = HitResult.ImpactPoint;
 		CueParameters.Normal = HitResult.ImpactNormal;
 		CueParameters.PhysicalMaterial = HitResult.PhysMaterial;
 		CueParameters.EffectCauser = CurrentActorInfo->AvatarActor.Get();
 		CueParameters.Instigator = CurrentActorInfo->AvatarActor.Get();
-		CueParameters.SourceObject = TargetActor;
-		SourceASC->ExecuteGameplayCue(ActiveTraceData.HitCueTag, CueParameters);
+		TargetASC->ExecuteGameplayCue(ActiveTraceData.HitCueTag, CueParameters);
 	}
 }
 

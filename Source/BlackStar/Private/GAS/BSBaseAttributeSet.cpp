@@ -1,6 +1,7 @@
 
 #include "GAS/BSBaseAttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "Interface/ICombatInterface.h"
 
 UBSBaseAttributeSet::UBSBaseAttributeSet()
 {
@@ -38,6 +39,35 @@ void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	if (Data.EvaluatedData.Attribute == GetCurrentHPAttribute())
 	{
 		SetCurrentHP(FMath::Clamp(GetCurrentHP(), 0.0f, GetMaxHP()));
+		
+		AActor* TargetActor = nullptr;
+		if (Data.Target.AbilityActorInfo.IsValid())
+		{
+			TargetActor = Data.Target.AbilityActorInfo->AvatarActor.Get();
+		}
+		ICombatInterface* CombatTarget = Cast<ICombatInterface>(TargetActor);
+		if (!CombatTarget)
+		{
+			return;
+		}
+		
+		const float DamageMagnitude = Data.EvaluatedData.Magnitude;
+		if (DamageMagnitude < 0.0f) // 데미지
+		{
+			const float DamageAmount = FMath::Abs(DamageMagnitude);
+
+			CombatTarget->SpawnFloatingDamage(DamageAmount,false,false);
+
+			if (GetCurrentHP() <= 0.0f)
+			{
+				AActor* Killer = Data.EffectSpec.GetContext().GetOriginalInstigator();
+				CombatTarget->Death(Killer);
+			}
+		}
+		else if (DamageMagnitude > 0.0f) // 힐
+		{
+			CombatTarget->SpawnFloatingDamage(DamageMagnitude,true,false);
+		}
 	}
 	else if (Data.EvaluatedData.Attribute == GetCurrentMPAttribute())
 	{

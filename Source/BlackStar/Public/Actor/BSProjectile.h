@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
 #include "BSProjectile.generated.h"
 
@@ -66,8 +67,12 @@ protected:
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	void ApplyDamageToTarget(AActor* TargetActor, const FHitResult& HitResult);
-	void ExecuteCue(FGameplayTag CueTag, AActor* TargetActor, const FHitResult& HitResult);
+	FGameplayEffectContextHandle ApplyDamageToTarget(AActor* TargetActor, const FHitResult& HitResult);
+	void ExecuteCue(
+		FGameplayTag CueTag,
+		AActor* TargetActor,
+		const FHitResult& HitResult,
+		const FGameplayEffectContextHandle& EffectContext = FGameplayEffectContextHandle());
 
 public:
 	void InitProjectile(UAbilitySystemComponent* InSourceASC, float InDamageMultiplier);

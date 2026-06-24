@@ -89,22 +89,22 @@ void ABSProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AAc
 	}
 
 	bHasHit = true;
-	ApplyDamageToTarget(OtherActor, SweepResult);
-	ExecuteCue(OverlapCueTag, OtherActor, SweepResult);
+	const FGameplayEffectContextHandle EffectContext = ApplyDamageToTarget(OtherActor, SweepResult);
+	ExecuteCue(OverlapCueTag, OtherActor, SweepResult, EffectContext);
 	Destroy();
 }
 
-void ABSProjectile::ApplyDamageToTarget(AActor* TargetActor, const FHitResult& HitResult)
+FGameplayEffectContextHandle ABSProjectile::ApplyDamageToTarget(AActor* TargetActor, const FHitResult& HitResult)
 {
 	if (!TargetActor || !DamageEffect)
 	{
-		return;
+		return FGameplayEffectContextHandle();
 	}
 
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 	if (!TargetASC)
 	{
-		return;
+		return FGameplayEffectContextHandle();
 	}
 
 	UAbilitySystemComponent* SpecSourceASC = SourceASC ? SourceASC.Get() : TargetASC;
@@ -115,7 +115,7 @@ void ABSProjectile::ApplyDamageToTarget(AActor* TargetActor, const FHitResult& H
 	FGameplayEffectSpecHandle SpecHandle = SpecSourceASC->MakeOutgoingSpec(DamageEffect, 1.0f, ContextHandle);
 	if (!SpecHandle.IsValid())
 	{
-		return;
+		return FGameplayEffectContextHandle();
 	}
 
 	float FinalDamage = BaseDamage;
@@ -130,21 +130,46 @@ void ABSProjectile::ApplyDamageToTarget(AActor* TargetActor, const FHitResult& H
 
 	SpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_Damage, -FinalDamage);
 	SpecSourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+	return ContextHandle;
 }
 
-void ABSProjectile::ExecuteCue(FGameplayTag CueTag, AActor* TargetActor, const FHitResult& HitResult)
+void ABSProjectile::ExecuteCue(
+	FGameplayTag CueTag,
+	AActor* TargetActor,
+	const FHitResult& HitResult,
+	const FGameplayEffectContextHandle& EffectContext)
 {
 	if (!CueTag.IsValid() || !SourceASC)
 	{
 		return;
 	}
 
+	UAbilitySystemComponent* TargetASC =
+		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+
+	FGameplayEffectContextHandle CueContext = EffectContext;
+	if (!CueContext.IsValid())
+	{
+		CueContext = SourceASC->MakeEffectContext();
+		CueContext.AddHitResult(HitResult);
+		CueContext.AddInstigator(GetOwner(), this);
+	}
+
 	FGameplayCueParameters CueParameters;
+	CueParameters.EffectContext = CueContext;
 	CueParameters.Location = HitResult.ImpactPoint;
 	CueParameters.Normal = HitResult.ImpactNormal;
 	CueParameters.PhysicalMaterial = HitResult.PhysMaterial;
 	CueParameters.EffectCauser = this;
 	CueParameters.Instigator = GetOwner();
-	CueParameters.SourceObject = TargetActor;
-	SourceASC->ExecuteGameplayCue(CueTag, CueParameters);
+
+	if (TargetASC)
+	{
+		TargetASC->ExecuteGameplayCue(CueTag, CueParameters);
+	}
+	else
+	{
+		// World geometry has no ASC, so use the source ASC to replicate a location-based impact cue.
+		SourceASC->ExecuteGameplayCue(CueTag, CueParameters);
+	}
 }
