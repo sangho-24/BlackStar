@@ -17,4 +17,5 @@ class BLACKSTAR_API ICombatInterface
 public:
 	virtual void SpawnFloatingDamage(const float Amount, const bool bIsHeal, const bool bIsCritical) {}
 	virtual void Death(AActor* Killer) {}
+	virtual bool IsDead() const { return false; }
 };

@@ -54,6 +54,13 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Setup")
 	float FloatingDamageRandomRadius = 30.0f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Death")
+	TObjectPtr<UAnimMontage> DeathMontage;
+	
+	bool bIsDead = false;
+	bool bDeathFinished = false;
+	TWeakObjectPtr<AActor> DeathKiller;
 
 protected:
 	virtual void BeginPlay() override;
@@ -67,12 +74,14 @@ public:
 	void StartTurning(const FRotator& TargetRotation, float TurnSpeed = 720.0f);
 	void StopTurning();
 	bool IsTurning() const { return bIsTurning; }
-
+	void NotifyDeathAnimationFinished();
+	
 	// 인라인 함수
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	FORCEINLINE UBSAbilitySystemComponent* GetBSAbilitySystemComponent() const { return AbilitySystemComponent; }
 	FORCEINLINE UBSBaseAttributeSet* GetAttributeSet() const { return AttributeSet; }
 
+	// 인터페이스
 	virtual FAbilitySkillData GetSkillDataForAbility(FGameplayTag AbilityTag) override;
 	virtual void SetProjectileData(const FProjectileData& Data) override;
 	virtual FProjectileData GetProjectileData() const override;
@@ -80,4 +89,15 @@ public:
 	virtual FMeleeTraceData GetMeleeTraceData() const override;
 	virtual void SpawnFloatingDamage(const float Amount, const bool bIsHeal, const bool bIsCritical) override;
 	virtual void Death(AActor* Killer) override;
+	virtual bool IsDead() const override { return bIsDead; }
+	
+private:
+	void DisableCharacterOnDeath();
+	void PlayDeathMontage();
+	void FinishDeath();
+	
+protected:
+	virtual UAnimMontage* SelectDeathMontage(AActor* Killer) const;
+	virtual void OnDeathStarted(AActor* Killer);
+	virtual void OnDeathFinished(AActor* Killer);
 };

@@ -6,6 +6,9 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "UI/FloatingDamageActor.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 ABSBaseCharacter::ABSBaseCharacter()
 {
@@ -92,6 +95,15 @@ void ABSBaseCharacter::StopTurning()
 	bIsTurning = false;
 }
 
+void ABSBaseCharacter::NotifyDeathAnimationFinished()
+{
+	if (!bIsDead) // 죽은척 방지
+	{
+		return;
+	}
+	FinishDeath();
+}
+
 UAbilitySystemComponent* ABSBaseCharacter::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent.Get();
@@ -158,4 +170,92 @@ void ABSBaseCharacter::SpawnFloatingDamage(const float Amount, const bool bIsHea
 
 void ABSBaseCharacter::Death(AActor* Killer)
 {
+	if (bIsDead)
+		return;
+	bIsDead = true;
+	bDeathFinished = false;
+	DeathKiller = Killer;
+	
+	OnDeathStarted(DeathKiller.Get());
+	DisableCharacterOnDeath();
+	PlayDeathMontage();
+}
+
+void ABSBaseCharacter::DisableCharacterOnDeath()
+{
+	StopTurning();
+
+	// 현재 실행 중인 공격/스킬 종료
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->CancelAllAbilities();
+	}
+
+	// 이동 중지
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	// AI나 플레이어 컨트롤러가 이동 명령을 내리고 있었다면 중단
+	if (Controller)
+	{
+		Controller->StopMovement();
+	}
+}
+
+
+void ABSBaseCharacter::PlayDeathMontage()
+{
+	UAnimMontage* SelectedMontage = SelectDeathMontage(DeathKiller.Get());
+	if (!SelectedMontage)
+	{
+		FinishDeath();
+		return;
+	}
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		FinishDeath();
+		return;
+	}
+
+	// 다른 몽타주 재생중지
+	AnimInstance->StopAllMontages(0.1f);
+
+	const float Duration = AnimInstance->Montage_Play(SelectedMontage);
+
+	if (Duration <= 0.0f)
+	{
+		FinishDeath();
+		return;
+	}
+}
+
+
+void ABSBaseCharacter::FinishDeath()
+{
+	if (bDeathFinished)
+		return;
+	bDeathFinished = true;
+
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	OnDeathFinished(DeathKiller.Get());
+}
+
+UAnimMontage* ABSBaseCharacter::SelectDeathMontage(AActor* Killer) const
+{
+	return DeathMontage;
+}
+
+void ABSBaseCharacter::OnDeathStarted(AActor* Killer)
+{
+	UE_LOG(LogTemp, Log, TEXT("OnDeathStarted 확인로그. Killer: %s"), *GetNameSafe(Killer));
+}
+
+void ABSBaseCharacter::OnDeathFinished(AActor* Killer)
+{
+	UE_LOG(LogTemp, Log, TEXT("OnDeathFinished 확인로그. Killer: %s"), *GetNameSafe(Killer));
 }

@@ -68,6 +68,23 @@ void ABSEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void ABSEnemyCharacter::OnDeathStarted(AActor* Killer)
+{
+	Super::OnDeathStarted(Killer);
+
+	if (NameplateWidgetComponent)
+	{
+		NameplateWidgetComponent->SetVisibility(false);
+	}
+	// 여기서 경험치, 드롭, AI 정리 등을 처리할 수 있음.
+}
+
+void ABSEnemyCharacter::OnDeathFinished(AActor* Killer)
+{
+	Super::OnDeathFinished(Killer);
+	SetLifeSpan(CorpseLifeTime);
+}
+
 
 void ABSEnemyCharacter::RefreshNameplate()
 {

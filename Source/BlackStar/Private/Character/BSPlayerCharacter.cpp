@@ -221,7 +221,13 @@ void ABSPlayerCharacter::UpdateLockOnTarget()
 		ClearLockOn();
 		return;
 	}
-
+	
+	if (LockOnTarget->IsDead())
+	{
+		ClearLockOn();
+		return;
+	}
+	
 	const float Distance = FVector::Dist(GetActorLocation(), LockOnTarget->GetActorLocation());
 	if (Distance > LockOnSearchRadius)
 	{
@@ -235,7 +241,7 @@ void ABSPlayerCharacter::UpdateLockOnTarget()
 	}
 }
 
-AActor* ABSPlayerCharacter::FindBestLockOnTarget() const
+ABSBaseCharacter* ABSPlayerCharacter::FindBestLockOnTarget() const
 {
 	UWorld* World = GetWorld();
 	if (!World)
@@ -245,7 +251,7 @@ AActor* ABSPlayerCharacter::FindBestLockOnTarget() const
 
 	struct FLockOnCandidate
 	{
-		TWeakObjectPtr<AActor> Actor;
+		TWeakObjectPtr<ABSBaseCharacter> Actor;
 		float Score = 0.0f;
 	};
 	
@@ -285,7 +291,7 @@ AActor* ABSPlayerCharacter::FindBestLockOnTarget() const
 
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
-		AActor* Candidate = Overlap.GetActor();
+		ABSBaseCharacter* Candidate = Cast<ABSBaseCharacter>(Overlap.GetActor());
 		if (!Candidate || Candidate == this)
 		{
 			continue;
@@ -325,7 +331,8 @@ AActor* ABSPlayerCharacter::FindBestLockOnTarget() const
 
 	for (const FLockOnCandidate& Candidate : Candidates)
 	{
-		AActor* CandidateActor = Candidate.Actor.Get();
+		ABSBaseCharacter* CandidateActor = Candidate.Actor.Get();
+		
 		if (!CandidateActor)
 		{
 			continue;
@@ -341,13 +348,18 @@ AActor* ABSPlayerCharacter::FindBestLockOnTarget() const
 }
 
 
-bool ABSPlayerCharacter::IsLockOnTargetable(AActor* Candidate) const
+bool ABSPlayerCharacter::IsLockOnTargetable(ABSBaseCharacter* Candidate) const
 {
 	if (!Candidate || Candidate == this)
 	{
 		return false;
 	}
 
+	if (Candidate->IsDead())
+	{
+		return false;
+	}
+	
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate))
 	{
 		return false;
@@ -357,7 +369,7 @@ bool ABSPlayerCharacter::IsLockOnTargetable(AActor* Candidate) const
 }
 
 
-bool ABSPlayerCharacter::HasLineOfSightToTarget(AActor* Candidate) const
+bool ABSPlayerCharacter::HasLineOfSightToTarget(ABSBaseCharacter* Candidate) const
 {
 	if (!Candidate)
 	{
@@ -421,6 +433,17 @@ void ABSPlayerCharacter::StopLockOnUpdateTimer()
 	}
 
 	World->GetTimerManager().ClearTimer(LockOnUpdateTimerHandle);
+}
+
+void ABSPlayerCharacter::OnDeathStarted(AActor* Killer)
+{
+	Super::OnDeathStarted(Killer);
+}
+
+void ABSPlayerCharacter::OnDeathFinished(AActor* Killer)
+{
+	Super::OnDeathFinished(Killer);
+	// 게임 오버 UI, 리스폰 타이머 등 
 }
 
 AActor* ABSPlayerCharacter::GetCombatTarget() const

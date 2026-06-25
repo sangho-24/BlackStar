@@ -32,6 +32,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Setup")
 	FVector2D NameplateSize = FVector2D(300.0f, 75.0f);
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Death|Setup")
+	float CorpseLifeTime = 5.0f;
+	
 	
 private:
 	FDelegateHandle CurrentHPDelegateHandle;
@@ -44,6 +47,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	virtual void OnDeathStarted(AActor* Killer) override;
+	virtual void OnDeathFinished(AActor* Killer) override;
 	
 private:
 	void RefreshNameplate();

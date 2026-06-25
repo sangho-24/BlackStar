@@ -71,7 +71,7 @@ protected:
 
 	// ===== 락온 관련 =====
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LockOn")
-	TObjectPtr<AActor> LockOnTarget = nullptr;
+	TObjectPtr<ABSBaseCharacter> LockOnTarget = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	float LockOnSearchRadius = 1500.0f;
@@ -118,11 +118,14 @@ protected:
 	
 	void ClearLockOn();
 	void UpdateLockOnTarget();
-	AActor* FindBestLockOnTarget() const;
-	bool IsLockOnTargetable(AActor* Candidate) const;
-	bool HasLineOfSightToTarget(AActor* Candidate) const;
+	ABSBaseCharacter* FindBestLockOnTarget() const;
+	bool IsLockOnTargetable(ABSBaseCharacter* Candidate) const;
+	bool HasLineOfSightToTarget(ABSBaseCharacter* Candidate) const;
 	void StartLockOnUpdateTimer();
 	void StopLockOnUpdateTimer();
+	
+	virtual void OnDeathStarted(AActor* Killer) override;
+	virtual void OnDeathFinished(AActor* Killer) override;
 
 public:
 
