@@ -13,10 +13,12 @@ namespace BSGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Event_MeleeTrace_Start, "Event.MeleeTrace.Start");
 	UE_DEFINE_GAMEPLAY_TAG(Event_MeleeTrace_End, "Event.MeleeTrace.End");
 	UE_DEFINE_GAMEPLAY_TAG(Event_SpawnProjectile, "Event.SpawnProjectile");
+	UE_DEFINE_GAMEPLAY_TAG(Event_Character_Death, "Event.Character.Death");
 
 	UE_DEFINE_GAMEPLAY_TAG(State_Attacking, "State.Attacking");
 	UE_DEFINE_GAMEPLAY_TAG(State_Combo, "State.Combo");
 	UE_DEFINE_GAMEPLAY_TAG(State_FaceTarget, "State.FaceTarget");
+	UE_DEFINE_GAMEPLAY_TAG(State_Dead, "State.Dead");
 
 	UE_DEFINE_GAMEPLAY_TAG(Data_Damage, "Data.Damage");
 }

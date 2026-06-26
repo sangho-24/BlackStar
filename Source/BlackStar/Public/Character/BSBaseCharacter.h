@@ -15,6 +15,7 @@ class UBSAbilitySet;
 class UGameplayAbility;
 class AFloatingDamageActor;
 
+
 UCLASS()
 class BLACKSTAR_API ABSBaseCharacter : public ACharacter, public IAbilitySystemInterface, public IAbilityAnimationInterface, public ICombatInterface
 {
@@ -22,6 +23,7 @@ class BLACKSTAR_API ABSBaseCharacter : public ACharacter, public IAbilitySystemI
 
 public:
 	ABSBaseCharacter();
+	
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")

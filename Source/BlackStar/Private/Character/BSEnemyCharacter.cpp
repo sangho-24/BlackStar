@@ -5,6 +5,8 @@
 #include "Components/WidgetComponent.h"
 #include "GAS/BSBaseAttributeSet.h"
 #include "UI/NameplateWidget.h"
+#include "Utility/BSGameplayTags.h"
+#include "Controller/BSAIController.h"
 
 ABSEnemyCharacter::ABSEnemyCharacter()
 {
@@ -17,6 +19,7 @@ ABSEnemyCharacter::ABSEnemyCharacter()
 	NameplateWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	NameplateWidgetComponent->SetDrawSize(NameplateSize);
 	NameplateWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 }
 
 void ABSEnemyCharacter::BeginPlay()
@@ -77,6 +80,10 @@ void ABSEnemyCharacter::OnDeathStarted(AActor* Killer)
 		NameplateWidgetComponent->SetVisibility(false);
 	}
 	// 여기서 경험치, 드롭, AI 정리 등을 처리할 수 있음.
+	if (ABSAIController* AIController = Cast<ABSAIController>(GetController()))
+	{
+		AIController->SendDeathStateTreeEvent();
+	}
 }
 
 void ABSEnemyCharacter::OnDeathFinished(AActor* Killer)

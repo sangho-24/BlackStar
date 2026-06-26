@@ -10,6 +10,7 @@ class UWidgetComponent;
 class UUserWidget;
 struct FOnAttributeChangeData;
 
+
 UCLASS()
 class BLACKSTAR_API ABSEnemyCharacter : public ABSBaseCharacter
 {
@@ -35,6 +36,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Death|Setup")
 	float CorpseLifeTime = 5.0f;
 	
+	// ===== AI =====
+
 	
 private:
 	FDelegateHandle CurrentHPDelegateHandle;

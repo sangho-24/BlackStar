@@ -22,7 +22,7 @@ public class BlackStar : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
-			"Niagara"
+			"Niagara",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

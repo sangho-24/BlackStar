@@ -9,6 +9,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Utility/BSGameplayTags.h"
 
 ABSBaseCharacter::ABSBaseCharacter()
 {
@@ -18,6 +19,7 @@ ABSBaseCharacter::ABSBaseCharacter()
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 	AttributeSet = CreateDefaultSubobject<UBSBaseAttributeSet>(TEXT("AttributeSet"));
+	
 }
 
 void ABSBaseCharacter::BeginPlay()
@@ -97,6 +99,7 @@ void ABSBaseCharacter::StopTurning()
 
 void ABSBaseCharacter::NotifyDeathAnimationFinished()
 {
+	UE_LOG(LogTemp, Log, TEXT("NotifyDeathAnimationFinished 확인로그"));
 	if (!bIsDead) // 죽은척 방지
 	{
 		return;
@@ -176,6 +179,7 @@ void ABSBaseCharacter::Death(AActor* Killer)
 	bDeathFinished = false;
 	DeathKiller = Killer;
 	
+	AbilitySystemComponent->AddLooseGameplayTag(BSGameplayTags::State_Dead);
 	OnDeathStarted(DeathKiller.Get());
 	DisableCharacterOnDeath();
 	PlayDeathMontage();
