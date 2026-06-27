@@ -80,9 +80,22 @@ void ABSEnemyCharacter::OnDeathStarted(AActor* Killer)
 		NameplateWidgetComponent->SetVisibility(false);
 	}
 	// 여기서 경험치, 드롭, AI 정리 등을 처리할 수 있음.
-	if (ABSAIController* AIController = Cast<ABSAIController>(GetController()))
+	AController* CurrentController = GetController();
+
+	UE_LOG(LogTemp, Warning, TEXT("Controller: %s"),
+		CurrentController ? *CurrentController->GetName() : TEXT("nullptr"));
+
+	UE_LOG(LogTemp, Warning, TEXT("Controller Class: %s"),
+		CurrentController ? *CurrentController->GetClass()->GetName() : TEXT("nullptr"));
+
+	if (ABSAIController* AIController = Cast<ABSAIController>(CurrentController))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("ai controller connected"));
 		AIController->SendDeathStateTreeEvent();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ABSAIController cast failed"));
 	}
 }
 

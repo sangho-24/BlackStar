@@ -20,15 +20,15 @@ void ABSAIController::SendDeathStateTreeEvent()
 
 void ABSAIController::OnPossess(APawn* InPawn)
 {
+	Super::OnPossess(InPawn);
+	StateTreeAI->StartLogic();
+}
+
+void ABSAIController::OnUnPossess()
+{
 	if (StateTreeAI)
 	{
 		StateTreeAI->StopLogic(TEXT("UnPossess"));
 	}
 	Super::OnUnPossess();
-}
-
-void ABSAIController::OnUnPossess()
-{
-	Super::OnUnPossess();
-	StateTreeAI->StopLogic(TEXT("UnPossess"));
 }
