@@ -18,16 +18,16 @@ class BLACKSTAR_API IAbilityAnimationInterface
 public:
 	virtual FAbilitySkillData GetSkillDataForAbility(FGameplayTag AbilityTag) { return FAbilitySkillData(); }
 
-	virtual void SetNextComboMontage(UAnimMontage* Montage) {}
-	virtual UAnimMontage* GetNextComboMontage() const { return nullptr; }
+	virtual void SetNextComboMontage(UAnimMontage *Montage) {}
+	virtual UAnimMontage *GetNextComboMontage() const { return nullptr; }
 	virtual void SetNextComboSection(FName SectionName) {}
 	virtual FName GetNextComboSection() const { return NAME_None; }
 
-	virtual AActor* GetCombatTarget() const { return nullptr; }
+	virtual AActor *GetCombatTarget() const { return nullptr; }
 
-	virtual void SetProjectileData(const FProjectileData& Data) {}
+	virtual void SetProjectileData(const FProjectileData &Data) {}
 	virtual FProjectileData GetProjectileData() const { return FProjectileData(); }
 
-	virtual void SetMeleeTraceData(const FMeleeTraceData& Data) {}
+	virtual void SetMeleeTraceData(const FMeleeTraceData &Data) {}
 	virtual FMeleeTraceData GetMeleeTraceData() const { return FMeleeTraceData(); }
 };

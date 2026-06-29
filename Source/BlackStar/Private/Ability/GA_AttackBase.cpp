@@ -11,6 +11,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Interface/IAbilityAnimationInterface.h"
+#include "Interface/ICombatInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/BSGameplayTags.h"
 
@@ -34,9 +35,9 @@ void UGA_AttackBase::PostInitProperties()
 
 void UGA_AttackBase::ActivateAbility(
 	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActorInfo *ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo,
-	const FGameplayEventData* TriggerEventData)
+	const FGameplayEventData *TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
@@ -46,15 +47,15 @@ void UGA_AttackBase::ActivateAbility(
 	}
 }
 
-bool UGA_AttackBase::StartAttack(const FGameplayEventData* TriggerEventData)
+bool UGA_AttackBase::StartAttack(const FGameplayEventData *TriggerEventData)
 {
 	if (!CurrentActorInfo)
 	{
 		return false;
 	}
 
-	AActor* AvatarActor = CurrentActorInfo->AvatarActor.Get();
-	IAbilityAnimationInterface* AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
+	AActor *AvatarActor = CurrentActorInfo->AvatarActor.Get();
+	IAbilityAnimationInterface *AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
 	if (!AvatarActor || !AnimChar)
 	{
 		return false;
@@ -84,22 +85,22 @@ bool UGA_AttackBase::StartAttack(const FGameplayEventData* TriggerEventData)
 
 void UGA_AttackBase::RegisterCommonEventTasks()
 {
-	UAbilityTask_WaitGameplayEvent* SpawnTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, BSGameplayTags::Event_SpawnProjectile);
+	UAbilityTask_WaitGameplayEvent *SpawnTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, BSGameplayTags::Event_SpawnProjectile);
 	SpawnTask->EventReceived.AddDynamic(this, &UGA_AttackBase::OnSpawnProjectile);
 	SpawnTask->ReadyForActivation();
 
-	UAbilityTask_WaitGameplayEvent* MeleeStartTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, BSGameplayTags::Event_MeleeTrace_Start, nullptr, false, true);
+	UAbilityTask_WaitGameplayEvent *MeleeStartTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, BSGameplayTags::Event_MeleeTrace_Start, nullptr, false, true);
 	MeleeStartTask->EventReceived.AddDynamic(this, &UGA_AttackBase::OnMeleeTraceStart);
 	MeleeStartTask->ReadyForActivation();
 
-	UAbilityTask_WaitGameplayEvent* MeleeEndTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, BSGameplayTags::Event_MeleeTrace_End, nullptr, false, true);
+	UAbilityTask_WaitGameplayEvent *MeleeEndTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, BSGameplayTags::Event_MeleeTrace_End, nullptr, false, true);
 	MeleeEndTask->EventReceived.AddDynamic(this, &UGA_AttackBase::OnMeleeTraceEnd);
 	MeleeEndTask->ReadyForActivation();
 }
 
-void UGA_AttackBase::PlayMontage(UAnimMontage* Montage, FName StartSection)
+void UGA_AttackBase::PlayMontage(UAnimMontage *Montage, FName StartSection)
 {
-	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, Montage, 1.0f, StartSection);
+	UAbilityTask_PlayMontageAndWait *MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, Montage, 1.0f, StartSection);
 	MontageTask->OnCompleted.AddDynamic(this, &UGA_AttackBase::OnMontageCompleted);
 	MontageTask->OnCancelled.AddDynamic(this, &UGA_AttackBase::OnMontageCancelled);
 	MontageTask->OnInterrupted.AddDynamic(this, &UGA_AttackBase::OnMontageCancelled);
@@ -114,7 +115,7 @@ void UGA_AttackBase::StartMeleeTrace()
 		return;
 	}
 
-	UWorld* World = CurrentActorInfo->AvatarActor->GetWorld();
+	UWorld *World = CurrentActorInfo->AvatarActor->GetWorld();
 	if (!World)
 	{
 		return;
@@ -131,7 +132,7 @@ void UGA_AttackBase::StopMeleeTrace()
 		return;
 	}
 
-	if (UWorld* World = CurrentActorInfo->AvatarActor->GetWorld())
+	if (UWorld *World = CurrentActorInfo->AvatarActor->GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(TraceTimerHandle);
 	}
@@ -144,13 +145,13 @@ void UGA_AttackBase::DoMeleeTrace()
 		return;
 	}
 
-	AActor* Avatar = CurrentActorInfo->AvatarActor.Get();
+	AActor *Avatar = CurrentActorInfo->AvatarActor.Get();
 	if (!Avatar)
 	{
 		return;
 	}
-	USkeletalMeshComponent* Mesh = Avatar->FindComponentByClass<USkeletalMeshComponent>();
-	UWorld* World = Avatar->GetWorld();
+	USkeletalMeshComponent *Mesh = Avatar->FindComponentByClass<USkeletalMeshComponent>();
+	UWorld *World = Avatar->GetWorld();
 	if (!Mesh || !World)
 	{
 		return;
@@ -158,7 +159,7 @@ void UGA_AttackBase::DoMeleeTrace()
 
 	FVector TraceStart = Avatar->GetActorLocation();
 	FVector TraceEnd = Avatar->GetActorLocation();
-	
+
 	if (!ActiveTraceData.StartSocketName.IsNone() && Mesh->DoesSocketExist(ActiveTraceData.StartSocketName))
 	{
 		TraceStart = Mesh->GetSocketLocation(ActiveTraceData.StartSocketName);
@@ -194,15 +195,16 @@ void UGA_AttackBase::DoMeleeTrace()
 		DrawDebugSphere(World, TraceEnd, ActiveTraceData.TraceRadius, 8, Color, false, TraceTickRate * 2.0f);
 	}
 
-	for (const FHitResult& Hit : Hits)
+	for (const FHitResult &Hit : Hits)
 	{
-		AActor* HitActor = Hit.GetActor();
+		AActor *HitActor = Hit.GetActor();
 		if (!HitActor || HitActor == Avatar)
 		{
 			continue;
 		}
 
-		if (HitActors.ContainsByPredicate([HitActor](const TWeakObjectPtr<AActor>& ExistingActor) { return ExistingActor.Get() == HitActor; }))
+		if (HitActors.ContainsByPredicate([HitActor](const TWeakObjectPtr<AActor> &ExistingActor)
+										  { return ExistingActor.Get() == HitActor; }))
 		{
 			continue;
 		}
@@ -212,15 +214,15 @@ void UGA_AttackBase::DoMeleeTrace()
 	}
 }
 
-void UGA_AttackBase::ApplyMeleeDamage(AActor* TargetActor, const FHitResult& HitResult)
+void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &HitResult)
 {
 	if (!TargetActor || !MeleeDamageEffect || !CurrentActorInfo)
 	{
 		return;
 	}
 
-	UAbilitySystemComponent* SourceASC = CurrentActorInfo->AbilitySystemComponent.Get();
-	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+	UAbilitySystemComponent *SourceASC = CurrentActorInfo->AbilitySystemComponent.Get();
+	UAbilitySystemComponent *TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 	if (!SourceASC || !TargetASC)
 	{
 		return;
@@ -237,7 +239,7 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor* TargetActor, const FHitResult& Hit
 	}
 
 	float FinalDamage = MeleeBaseDamage;
-	if (const UBSBaseAttributeSet* SourceAttributeSet = SourceASC->GetSet<UBSBaseAttributeSet>())
+	if (const UBSBaseAttributeSet *SourceAttributeSet = SourceASC->GetSet<UBSBaseAttributeSet>())
 	{
 		FinalDamage *= 1.0f + SourceAttributeSet->GetAttackPower() / 100.0f;
 	}
@@ -271,8 +273,8 @@ void UGA_AttackBase::OnMontageCancelled()
 
 void UGA_AttackBase::OnMeleeTraceStart(FGameplayEventData Payload)
 {
-	AActor* AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
-	IAbilityAnimationInterface* AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
+	AActor *AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
+	IAbilityAnimationInterface *AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
 	if (!AnimChar)
 	{
 		return;
@@ -291,8 +293,8 @@ void UGA_AttackBase::OnMeleeTraceEnd(FGameplayEventData Payload)
 
 void UGA_AttackBase::OnSpawnProjectile(FGameplayEventData Payload)
 {
-	AActor* AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
-	IAbilityAnimationInterface* AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
+	AActor *AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
+	IAbilityAnimationInterface *AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
 	if (!AvatarActor || !AnimChar)
 	{
 		return;
@@ -307,7 +309,7 @@ void UGA_AttackBase::OnSpawnProjectile(FGameplayEventData Payload)
 	FVector SpawnLocation = AvatarActor->GetActorLocation();
 	FRotator SpawnRotation = AvatarActor->GetActorRotation();
 
-	if (USkeletalMeshComponent* Mesh = AvatarActor->FindComponentByClass<USkeletalMeshComponent>())
+	if (USkeletalMeshComponent *Mesh = AvatarActor->FindComponentByClass<USkeletalMeshComponent>())
 	{
 		if (!ActiveProjectileData.SpawnSocketName.IsNone() && Mesh->DoesSocketExist(ActiveProjectileData.SpawnSocketName))
 		{
@@ -315,7 +317,7 @@ void UGA_AttackBase::OnSpawnProjectile(FGameplayEventData Payload)
 		}
 	}
 
-	AActor* Target = const_cast<AActor*>(Payload.Target.Get());
+	AActor *Target = const_cast<AActor *>(Payload.Target.Get());
 	if (!Target)
 	{
 		Target = AttackTarget;
@@ -325,7 +327,7 @@ void UGA_AttackBase::OnSpawnProjectile(FGameplayEventData Payload)
 		SpawnRotation = (Target->GetActorLocation() - SpawnLocation).Rotation();
 	}
 
-	ABSProjectile* Projectile = AvatarActor->GetWorld()->SpawnActorDeferred<ABSProjectile>(
+	ABSProjectile *Projectile = AvatarActor->GetWorld()->SpawnActorDeferred<ABSProjectile>(
 		ActiveProjectileData.ProjectileClass,
 		FTransform(SpawnRotation, SpawnLocation),
 		AvatarActor,
@@ -339,20 +341,20 @@ void UGA_AttackBase::OnSpawnProjectile(FGameplayEventData Payload)
 	}
 }
 
-AActor* UGA_AttackBase::ResolveAttackTarget() const
+AActor *UGA_AttackBase::ResolveAttackTarget() const
 {
-	AActor* AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
-	const IAbilityAnimationInterface* AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
-	if (!AnimChar)
+	AActor *AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
+	const ICombatInterface *CombatChar = Cast<ICombatInterface>(AvatarActor);
+	if (!CombatChar)
 	{
 		return nullptr;
 	}
-	return AnimChar->GetCombatTarget();
+	return CombatChar->GetCombatTarget();
 }
 
-void UGA_AttackBase::FaceTarget(AActor* TargetActor)
+void UGA_AttackBase::FaceTarget(AActor *TargetActor)
 {
-	ACharacter* Character = CurrentActorInfo ? Cast<ACharacter>(CurrentActorInfo->AvatarActor.Get()) : nullptr;
+	ACharacter *Character = CurrentActorInfo ? Cast<ACharacter>(CurrentActorInfo->AvatarActor.Get()) : nullptr;
 	if (!Character || !TargetActor)
 	{
 		return;
@@ -374,10 +376,9 @@ void UGA_AttackBase::FaceAttackDirection()
 {
 }
 
-
 void UGA_AttackBase::EndAbility(
 	const FGameplayAbilitySpecHandle Handle,
-	const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActorInfo *ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	bool bReplicateEndAbility,
 	bool bWasCancelled)

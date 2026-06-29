@@ -19,7 +19,6 @@ ABSEnemyCharacter::ABSEnemyCharacter()
 	NameplateWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	NameplateWidgetComponent->SetDrawSize(NameplateSize);
 	NameplateWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
 }
 
 void ABSEnemyCharacter::BeginPlay()
@@ -46,14 +45,16 @@ void ABSEnemyCharacter::InitializeNameplate()
 		}
 
 		RefreshNameplate();
-		
+
 		if (AbilitySystemComponent)
 		{
 			CurrentHPDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-					UBSBaseAttributeSet::GetCurrentHPAttribute()) .AddUObject(this, &ABSEnemyCharacter::OnHPChanged);
+																UBSBaseAttributeSet::GetCurrentHPAttribute())
+										  .AddUObject(this, &ABSEnemyCharacter::OnHPChanged);
 
 			MaxHPDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-					UBSBaseAttributeSet::GetMaxHPAttribute()) .AddUObject(this, &ABSEnemyCharacter::OnHPChanged);
+															UBSBaseAttributeSet::GetMaxHPAttribute())
+									  .AddUObject(this, &ABSEnemyCharacter::OnHPChanged);
 		}
 	}
 }
@@ -63,15 +64,37 @@ void ABSEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-				UBSBaseAttributeSet::GetCurrentHPAttribute()).Remove(CurrentHPDelegateHandle);
+								  UBSBaseAttributeSet::GetCurrentHPAttribute())
+			.Remove(CurrentHPDelegateHandle);
 
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-				UBSBaseAttributeSet::GetMaxHPAttribute()).Remove(MaxHPDelegateHandle);
+								  UBSBaseAttributeSet::GetMaxHPAttribute())
+			.Remove(MaxHPDelegateHandle);
 	}
 	Super::EndPlay(EndPlayReason);
 }
 
-void ABSEnemyCharacter::OnDeathStarted(AActor* Killer)
+void ABSEnemyCharacter::SetCombatTarget(AActor *NewTarget)
+{
+	CombatTarget = Cast<ABSBaseCharacter>(NewTarget);
+}
+
+void ABSEnemyCharacter::ClearCombatTarget()
+{
+	CombatTarget = nullptr;
+}
+
+void ABSEnemyCharacter::SetLastKnownTargetLocation(const FVector& Location)
+{
+	LastKnownTargetLocation = Location;
+}
+
+AActor* ABSEnemyCharacter::GetCombatTarget() const
+{
+	return CombatTarget;
+}
+
+void ABSEnemyCharacter::OnDeathStarted(AActor *Killer)
 {
 	Super::OnDeathStarted(Killer);
 
@@ -80,15 +103,15 @@ void ABSEnemyCharacter::OnDeathStarted(AActor* Killer)
 		NameplateWidgetComponent->SetVisibility(false);
 	}
 	// 여기서 경험치, 드롭, AI 정리 등을 처리할 수 있음.
-	AController* CurrentController = GetController();
+	AController *CurrentController = GetController();
 
 	UE_LOG(LogTemp, Warning, TEXT("Controller: %s"),
-		CurrentController ? *CurrentController->GetName() : TEXT("nullptr"));
+		   CurrentController ? *CurrentController->GetName() : TEXT("nullptr"));
 
 	UE_LOG(LogTemp, Warning, TEXT("Controller Class: %s"),
-		CurrentController ? *CurrentController->GetClass()->GetName() : TEXT("nullptr"));
+		   CurrentController ? *CurrentController->GetClass()->GetName() : TEXT("nullptr"));
 
-	if (ABSAIController* AIController = Cast<ABSAIController>(CurrentController))
+	if (ABSAIController *AIController = Cast<ABSAIController>(CurrentController))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ai controller connected"));
 		AIController->SendDeathStateTreeEvent();
@@ -99,12 +122,11 @@ void ABSEnemyCharacter::OnDeathStarted(AActor* Killer)
 	}
 }
 
-void ABSEnemyCharacter::OnDeathFinished(AActor* Killer)
+void ABSEnemyCharacter::OnDeathFinished(AActor *Killer)
 {
 	Super::OnDeathFinished(Killer);
 	SetLifeSpan(CorpseLifeTime);
 }
-
 
 void ABSEnemyCharacter::RefreshNameplate()
 {
@@ -113,7 +135,7 @@ void ABSEnemyCharacter::RefreshNameplate()
 		return;
 	}
 
-	UNameplateWidget* Nameplate = Cast<UNameplateWidget>(NameplateWidgetComponent->GetUserWidgetObject());
+	UNameplateWidget *Nameplate = Cast<UNameplateWidget>(NameplateWidgetComponent->GetUserWidgetObject());
 
 	if (!Nameplate)
 	{
@@ -130,7 +152,7 @@ void ABSEnemyCharacter::RefreshNameplate()
 	}
 }
 
-void ABSEnemyCharacter::OnHPChanged(const FOnAttributeChangeData& Data)
+void ABSEnemyCharacter::OnHPChanged(const FOnAttributeChangeData &Data)
 {
 	RefreshNameplate();
 }

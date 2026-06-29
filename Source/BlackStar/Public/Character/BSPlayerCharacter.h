@@ -37,7 +37,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
 	TObjectPtr<UInputAction> BasicSkillInput;
-	
+
 	FVector2D CurrentMoveInput = FVector2D::ZeroVector;
 
 	// ===== 카메라 관련 =====
@@ -84,7 +84,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	float LockOnDistanceWeight = 0.01f;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	float LockOnInterpSpeed = 8.0f;
 
@@ -93,51 +93,51 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	TEnumAsByte<ECollisionChannel> LockOnTraceChannel = ECC_Visibility;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Debug")
 	bool bDrawLockOnDebug = false;
-	
+
 	FTimerHandle LockOnUpdateTimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	float LockOnUpdateInterval = 0.5f;
-	
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent *PlayerInputComponent) override;
 
-	void MoveAction(const FInputActionValue& Value);
-	void StopMoveAction(const FInputActionValue& Value);
-	void LookAction(const FInputActionValue& Value);
-	void ZoomAction(const FInputActionValue& Value);
+	void MoveAction(const FInputActionValue &Value);
+	void StopMoveAction(const FInputActionValue &Value);
+	void LookAction(const FInputActionValue &Value);
+	void ZoomAction(const FInputActionValue &Value);
 	void JumpAction();
 	void StopJumpingAction();
 	void BasicSkillAction();
 	void LockOnAction();
-	
-	void ClearLockOn();
+
 	void UpdateLockOnTarget();
-	ABSBaseCharacter* FindBestLockOnTarget() const;
-	bool IsLockOnTargetable(ABSBaseCharacter* Candidate) const;
-	bool HasLineOfSightToTarget(ABSBaseCharacter* Candidate) const;
+	ABSBaseCharacter *FindBestLockOnTarget() const;
+	bool IsLockOnTargetable(ABSBaseCharacter *Candidate) const;
+	bool HasLineOfSightToTarget(ABSBaseCharacter *Candidate) const;
 	void StartLockOnUpdateTimer();
 	void StopLockOnUpdateTimer();
-	
-	virtual void OnDeathStarted(AActor* Killer) override;
-	virtual void OnDeathFinished(AActor* Killer) override;
+
+	virtual void OnDeathStarted(AActor *Killer) override;
+	virtual void OnDeathFinished(AActor *Killer) override;
 
 public:
-
 	FVector2D GetCurrentMoveInput() const { return CurrentMoveInput; }
 	// ===== 인터페이스 함수 =====
-	virtual AActor* GetCombatTarget() const override;
-	
-	virtual void SetNextComboMontage(UAnimMontage* Montage) override;
-	virtual UAnimMontage* GetNextComboMontage() const override;
+	virtual AActor *GetCombatTarget() const override;
+	virtual void SetCombatTarget(AActor *NewTarget) override;
+	virtual void ClearCombatTarget() override;
+
+	virtual void SetNextComboMontage(UAnimMontage *Montage) override;
+	virtual UAnimMontage *GetNextComboMontage() const override;
 	virtual void SetNextComboSection(FName SectionName) override;
 	virtual FName GetNextComboSection() const override;
 
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE USpringArmComponent *GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE UCameraComponent *GetFollowCamera() const { return FollowCamera; }
 };

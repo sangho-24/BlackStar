@@ -48,13 +48,13 @@ void ABSPlayerCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	if (CameraBoom)
-    	DesiredArmLength = CameraBoom->TargetArmLength;
+		DesiredArmLength = CameraBoom->TargetArmLength;
 }
 
 void ABSPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
 	// 락온 카메라 보간
 	if (LockOnTarget && Controller)
 	{
@@ -69,8 +69,7 @@ void ABSPlayerCharacter::Tick(float DeltaTime)
 				CurrentRotation,
 				TargetRotation,
 				DeltaTime,
-				LockOnInterpSpeed
-			);
+				LockOnInterpSpeed);
 
 			Controller->SetControlRotation(NewRotation);
 		}
@@ -87,11 +86,11 @@ void ABSPlayerCharacter::Tick(float DeltaTime)
 	}
 }
 
-void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	UEnhancedInputComponent *EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!EnhancedInputComponent)
 	{
 		return;
@@ -100,8 +99,8 @@ void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	if (MoveInput)
 	{
 		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Triggered, this, &ABSPlayerCharacter::MoveAction);
-		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Completed,this, &ABSPlayerCharacter::StopMoveAction);
-		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Canceled,this, &ABSPlayerCharacter::StopMoveAction);
+		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Completed, this, &ABSPlayerCharacter::StopMoveAction);
+		EnhancedInputComponent->BindAction(MoveInput, ETriggerEvent::Canceled, this, &ABSPlayerCharacter::StopMoveAction);
 	}
 	if (LookInput)
 	{
@@ -126,7 +125,7 @@ void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	}
 }
 
-void ABSPlayerCharacter::MoveAction(const FInputActionValue& Value)
+void ABSPlayerCharacter::MoveAction(const FInputActionValue &Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	CurrentMoveInput = MovementVector;
@@ -144,12 +143,12 @@ void ABSPlayerCharacter::MoveAction(const FInputActionValue& Value)
 	AddMovementInput(RightDirection, MovementVector.X);
 }
 
-void ABSPlayerCharacter::StopMoveAction(const FInputActionValue& Value)
+void ABSPlayerCharacter::StopMoveAction(const FInputActionValue &Value)
 {
 	CurrentMoveInput = FVector2D::ZeroVector;
 }
 
-void ABSPlayerCharacter::LookAction(const FInputActionValue& Value)
+void ABSPlayerCharacter::LookAction(const FInputActionValue &Value)
 {
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
@@ -157,11 +156,11 @@ void ABSPlayerCharacter::LookAction(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
-void ABSPlayerCharacter::ZoomAction(const FInputActionValue& Value)
+void ABSPlayerCharacter::ZoomAction(const FInputActionValue &Value)
 {
 	if (!Controller || !CameraBoom)
 		return;
-	
+
 	const float ZoomAxis = Value.Get<float>();
 
 	DesiredArmLength = FMath::Clamp(DesiredArmLength - ZoomAxis * ZoomStep, MinArmLength, MaxArmLength);
@@ -180,7 +179,7 @@ void ABSPlayerCharacter::StopJumpingAction()
 
 void ABSPlayerCharacter::BasicSkillAction()
 {
-	UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent();
+	UBSAbilitySystemComponent *BSASC = GetBSAbilitySystemComponent();
 	if (!BSASC)
 	{
 		return;
@@ -193,20 +192,14 @@ void ABSPlayerCharacter::LockOnAction()
 {
 	if (LockOnTarget)
 	{
-		ClearLockOn();
+		ClearCombatTarget();
 		return;
 	}
-	LockOnTarget = FindBestLockOnTarget();
+	SetCombatTarget(FindBestLockOnTarget());
 	if (LockOnTarget)
 	{
 		StartLockOnUpdateTimer();
 	}
-}
-
-void ABSPlayerCharacter::ClearLockOn()
-{
-	LockOnTarget = nullptr;
-	StopLockOnUpdateTimer();
 }
 
 void ABSPlayerCharacter::UpdateLockOnTarget()
@@ -218,32 +211,32 @@ void ABSPlayerCharacter::UpdateLockOnTarget()
 
 	if (!IsValid(LockOnTarget))
 	{
-		ClearLockOn();
+		ClearCombatTarget();
 		return;
 	}
-	
+
 	if (LockOnTarget->IsDead())
 	{
-		ClearLockOn();
+		ClearCombatTarget();
 		return;
 	}
-	
+
 	const float Distance = FVector::Dist(GetActorLocation(), LockOnTarget->GetActorLocation());
 	if (Distance > LockOnSearchRadius)
 	{
-		ClearLockOn();
+		ClearCombatTarget();
 		return;
 	}
 
 	if (!HasLineOfSightToTarget(LockOnTarget))
 	{
-		ClearLockOn();
+		ClearCombatTarget();
 	}
 }
 
-ABSBaseCharacter* ABSPlayerCharacter::FindBestLockOnTarget() const
+ABSBaseCharacter *ABSPlayerCharacter::FindBestLockOnTarget() const
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (!World)
 	{
 		return nullptr;
@@ -254,7 +247,7 @@ ABSBaseCharacter* ABSPlayerCharacter::FindBestLockOnTarget() const
 		TWeakObjectPtr<ABSBaseCharacter> Actor;
 		float Score = 0.0f;
 	};
-	
+
 	const FVector SearchLocation = GetActorLocation();
 
 	TArray<FOverlapResult> Overlaps;
@@ -270,8 +263,7 @@ ABSBaseCharacter* ABSPlayerCharacter::FindBestLockOnTarget() const
 		FQuat::Identity,
 		ObjectQueryParams,
 		FCollisionShape::MakeSphere(LockOnSearchRadius),
-		QueryParams
-	);
+		QueryParams);
 
 	if (bDrawLockOnDebug)
 	{
@@ -289,9 +281,9 @@ ABSBaseCharacter* ABSPlayerCharacter::FindBestLockOnTarget() const
 
 	TArray<FLockOnCandidate> Candidates;
 
-	for (const FOverlapResult& Overlap : Overlaps)
+	for (const FOverlapResult &Overlap : Overlaps)
 	{
-		ABSBaseCharacter* Candidate = Cast<ABSBaseCharacter>(Overlap.GetActor());
+		ABSBaseCharacter *Candidate = Cast<ABSBaseCharacter>(Overlap.GetActor());
 		if (!Candidate || Candidate == this)
 		{
 			continue;
@@ -321,18 +313,16 @@ ABSBaseCharacter* ABSPlayerCharacter::FindBestLockOnTarget() const
 		// 점수 낮을수록 우선순위. Dot점수 최고점 0으로.
 		const float AngleScore = 1.0f - Dot;
 		const float Score = AngleScore * LockOnAngleWeight + Distance * LockOnDistanceWeight;
-		Candidates.Add({ Candidate, Score });
+		Candidates.Add({Candidate, Score});
 	}
 
-	Candidates.Sort([](const FLockOnCandidate& A, const FLockOnCandidate& B)
-	{
-		return A.Score < B.Score;
-	});
+	Candidates.Sort([](const FLockOnCandidate &A, const FLockOnCandidate &B)
+					{ return A.Score < B.Score; });
 
-	for (const FLockOnCandidate& Candidate : Candidates)
+	for (const FLockOnCandidate &Candidate : Candidates)
 	{
-		ABSBaseCharacter* CandidateActor = Candidate.Actor.Get();
-		
+		ABSBaseCharacter *CandidateActor = Candidate.Actor.Get();
+
 		if (!CandidateActor)
 		{
 			continue;
@@ -347,8 +337,7 @@ ABSBaseCharacter* ABSPlayerCharacter::FindBestLockOnTarget() const
 	return nullptr;
 }
 
-
-bool ABSPlayerCharacter::IsLockOnTargetable(ABSBaseCharacter* Candidate) const
+bool ABSPlayerCharacter::IsLockOnTargetable(ABSBaseCharacter *Candidate) const
 {
 	if (!Candidate || Candidate == this)
 	{
@@ -359,7 +348,7 @@ bool ABSPlayerCharacter::IsLockOnTargetable(ABSBaseCharacter* Candidate) const
 	{
 		return false;
 	}
-	
+
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate))
 	{
 		return false;
@@ -368,15 +357,14 @@ bool ABSPlayerCharacter::IsLockOnTargetable(ABSBaseCharacter* Candidate) const
 	return true;
 }
 
-
-bool ABSPlayerCharacter::HasLineOfSightToTarget(ABSBaseCharacter* Candidate) const
+bool ABSPlayerCharacter::HasLineOfSightToTarget(ABSBaseCharacter *Candidate) const
 {
 	if (!Candidate)
 	{
 		return false;
 	}
 
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (!World)
 	{
 		return false;
@@ -394,8 +382,7 @@ bool ABSPlayerCharacter::HasLineOfSightToTarget(ABSBaseCharacter* Candidate) con
 		Start,
 		End,
 		LockOnTraceChannel,
-		QueryParams
-	);
+		QueryParams);
 
 	const bool bHasSight = !bHit || HitResult.GetActor() == Candidate;
 
@@ -409,7 +396,7 @@ bool ABSPlayerCharacter::HasLineOfSightToTarget(ABSBaseCharacter* Candidate) con
 
 void ABSPlayerCharacter::StartLockOnUpdateTimer()
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (!World)
 	{
 		return;
@@ -420,13 +407,12 @@ void ABSPlayerCharacter::StartLockOnUpdateTimer()
 		this,
 		&ABSPlayerCharacter::UpdateLockOnTarget,
 		LockOnUpdateInterval,
-		true
-	);
+		true);
 }
 
 void ABSPlayerCharacter::StopLockOnUpdateTimer()
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (!World)
 	{
 		return;
@@ -435,28 +421,39 @@ void ABSPlayerCharacter::StopLockOnUpdateTimer()
 	World->GetTimerManager().ClearTimer(LockOnUpdateTimerHandle);
 }
 
-void ABSPlayerCharacter::OnDeathStarted(AActor* Killer)
+void ABSPlayerCharacter::OnDeathStarted(AActor *Killer)
 {
 	Super::OnDeathStarted(Killer);
 }
 
-void ABSPlayerCharacter::OnDeathFinished(AActor* Killer)
+void ABSPlayerCharacter::OnDeathFinished(AActor *Killer)
 {
 	Super::OnDeathFinished(Killer);
-	// 게임 오버 UI, 리스폰 타이머 등 
+	// 게임 오버 UI, 리스폰 타이머 등
 }
 
-AActor* ABSPlayerCharacter::GetCombatTarget() const
+void ABSPlayerCharacter::SetCombatTarget(AActor *NewTarget)
+{
+	LockOnTarget = Cast<ABSBaseCharacter>(NewTarget);
+}
+
+void ABSPlayerCharacter::ClearCombatTarget()
+{
+	LockOnTarget = nullptr;
+	StopLockOnUpdateTimer();
+}
+
+AActor *ABSPlayerCharacter::GetCombatTarget() const
 {
 	return LockOnTarget;
 }
 
-void ABSPlayerCharacter::SetNextComboMontage(UAnimMontage* Montage)
+void ABSPlayerCharacter::SetNextComboMontage(UAnimMontage *Montage)
 {
 	NextComboMontage = Montage;
 }
 
-UAnimMontage* ABSPlayerCharacter::GetNextComboMontage() const
+UAnimMontage *ABSPlayerCharacter::GetNextComboMontage() const
 {
 	return NextComboMontage;
 }
