@@ -8,6 +8,8 @@
 #include "BSAIStateTreeTasks.generated.h"
 
 class ABSBaseCharacter;
+class ABSEnemyCharacter;
+class AAIController;
 class UBSAbilitySystemComponent;
 
 USTRUCT()
@@ -66,4 +68,58 @@ private:
 		UBSAbilitySystemComponent* BSASC, const FGameplayTag& AbilityTag);
 
 	static void UnbindAbilityEndedDelegate(FInstanceDataType& InstanceData);
+};
+
+USTRUCT()
+struct FSTTask_MoveToLastKnownTargetLocationInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+
+	// 도착 판정 거리
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	float AcceptanceRadius = 120.0f;
+
+	// 목표가 이만큼 이동하면 갱신
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	float RepathDistance = 100.0f;
+
+	// 마지막으로 요청한 이동 위치, RepathDistance에서 사용
+	FVector LastRequestedMoveLocation = FVector::ZeroVector;
+};
+
+USTRUCT(meta = (DisplayName = "Move To Last Known Target Location", Category = "BlackStar|AI"))
+struct FSTTask_MoveToLastKnownTargetLocation : public FStateTreeTaskCommonBase
+{
+	GENERATED_BODY()
+
+	FSTTask_MoveToLastKnownTargetLocation();
+
+	using FInstanceDataType = FSTTask_MoveToLastKnownTargetLocationInstanceData;
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+
+	virtual EStateTreeRunStatus EnterState(
+		FStateTreeExecutionContext& Context,
+		const FStateTreeTransitionResult& Transition) const override;
+
+	virtual EStateTreeRunStatus Tick(
+		FStateTreeExecutionContext& Context,
+		const float DeltaTime) const override;
+
+	virtual void ExitState(
+		FStateTreeExecutionContext& Context,
+		const FStateTreeTransitionResult& Transition) const override;
+	
+#if WITH_EDITOR
+	virtual FText GetDescription(
+		const FGuid& ID,
+		FStateTreeDataView InstanceDataView,
+		const IStateTreeBindingLookup& BindingLookup,
+		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
+#endif
+
+private:
+	static EStateTreeRunStatus RequestMove(FInstanceDataType& InstanceData);
 };
