@@ -85,16 +85,17 @@ void ABSAIController::OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus Stimu
 			return;
 		}
 		EnemyCharacter->SetCombatTarget(Actor);
-		// 정확한 위치 기록(시야에 있으니)
-		EnemyCharacter->SetLastKnownTargetLocation(Actor->GetActorLocation());
-		StartLastKnownTargetLocationUpdate(Actor);
+		VisibleTarget = Actor;
+		// EnemyCharacter->SetLastKnownTargetLocation(Actor->GetActorLocation());
+		// StartLastKnownTargetLocationUpdate(Actor);
 	}
 	else
 	{
 		// 인지 벗어난 액터가 현재 대상인지 확인. 다른 대상을 잡고있는 경우 클리어 안함.
 		if (VisibleTarget.Get() == Actor)
 		{
-			StopLastKnownTargetLocationUpdate();
+			VisibleTarget.Reset();
+			// StopLastKnownTargetLocationUpdate();
 		}
 	}
 }
@@ -114,59 +115,59 @@ void ABSAIController::OnTargetPerceptionForgotten(AActor* Actor)
 	// 수명이 끝난 액터가 현재 대상으로 잡은 액터인지 확인. 다른 대상을 잡고있는 경우 클리어 안함.
 	if (EnemyCharacter->GetCombatTarget() == Actor)
 	{
+		EnemyCharacter->SetLastKnownTargetLocation(Actor->GetActorLocation());
 		EnemyCharacter->ClearCombatTarget();
-		EnemyCharacter->SetLastKnownTargetLocation(FVector::ZeroVector);
 	}
 }
 
-void ABSAIController::StartLastKnownTargetLocationUpdate(AActor* TargetActor)
-{
-	if (!TargetActor)
-	{
-		return;
-	}
-
-	VisibleTarget = TargetActor;
-
-	GetWorldTimerManager().ClearTimer(UpdateLastKnownTargetLocationTimerHandle);
-
-	GetWorldTimerManager().SetTimer(
-		UpdateLastKnownTargetLocationTimerHandle,
-		this,
-		&ABSAIController::UpdateLastKnownTargetLocation,
-		0.1f,
-		true
-	);
-}
-
-
-void ABSAIController::StopLastKnownTargetLocationUpdate()
-{
-	GetWorldTimerManager().ClearTimer(UpdateLastKnownTargetLocationTimerHandle);
-	VisibleTarget.Reset();
-}
-
-void ABSAIController::UpdateLastKnownTargetLocation()
-{
-	AActor* TargetActor = VisibleTarget.Get();
-	if (!TargetActor)
-	{
-		StopLastKnownTargetLocationUpdate();
-		return;
-	}
-
-	ABSEnemyCharacter* EnemyCharacter = Cast<ABSEnemyCharacter>(GetPawn());
-	if (!EnemyCharacter || EnemyCharacter->IsDead())
-	{
-		StopLastKnownTargetLocationUpdate();
-		return;
-	}
-
-	if (EnemyCharacter->GetCombatTarget() != TargetActor)
-	{
-		StopLastKnownTargetLocationUpdate();
-		return;
-	}
-
-	EnemyCharacter->SetLastKnownTargetLocation(TargetActor->GetActorLocation());
-}
+// void ABSAIController::StartLastKnownTargetLocationUpdate(AActor* TargetActor)
+// {
+// 	if (!TargetActor)
+// 	{
+// 		return;
+// 	}
+//
+// 	VisibleTarget = TargetActor;
+//
+// 	GetWorldTimerManager().ClearTimer(UpdateLastKnownTargetLocationTimerHandle);
+//
+// 	GetWorldTimerManager().SetTimer(
+// 		UpdateLastKnownTargetLocationTimerHandle,
+// 		this,
+// 		&ABSAIController::UpdateLastKnownTargetLocation,
+// 		0.1f,
+// 		true
+// 	);
+// }
+//
+//
+// void ABSAIController::StopLastKnownTargetLocationUpdate()
+// {
+// 	GetWorldTimerManager().ClearTimer(UpdateLastKnownTargetLocationTimerHandle);
+// 	VisibleTarget.Reset();
+// }
+//
+// void ABSAIController::UpdateLastKnownTargetLocation()
+// {
+// 	AActor* TargetActor = VisibleTarget.Get();
+// 	if (!TargetActor)
+// 	{
+// 		StopLastKnownTargetLocationUpdate();
+// 		return;
+// 	}
+//
+// 	ABSEnemyCharacter* EnemyCharacter = Cast<ABSEnemyCharacter>(GetPawn());
+// 	if (!EnemyCharacter || EnemyCharacter->IsDead())
+// 	{
+// 		StopLastKnownTargetLocationUpdate();
+// 		return;
+// 	}
+//
+// 	if (EnemyCharacter->GetCombatTarget() != TargetActor)
+// 	{
+// 		StopLastKnownTargetLocationUpdate();
+// 		return;
+// 	}
+//
+// 	EnemyCharacter->SetLastKnownTargetLocation(TargetActor->GetActorLocation());
+// }

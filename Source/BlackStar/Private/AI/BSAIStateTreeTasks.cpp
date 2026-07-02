@@ -167,6 +167,10 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::EnterState(FStateTree
 		return EStateTreeRunStatus::Failed;
 	}
 
+	InstanceData.LastRequestedTarget.Reset();
+	InstanceData.LastRequestedMoveLocation = FVector::ZeroVector;
+	InstanceData.bLastRequestWasActor = false;
+	
 	return RequestMove(InstanceData);
 }
 
@@ -174,45 +178,21 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::Tick(FStateTreeExecut
 	const float DeltaTime) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
 	if (!InstanceData.EnemyCharacter)
 	{
 		return EStateTreeRunStatus::Failed;
 	}
 
-	const FVector GoalLocation = InstanceData.EnemyCharacter->GetLastKnownTargetLocation();
-	if (GoalLocation.IsNearlyZero())
-	{
-		return EStateTreeRunStatus::Failed;
-	}
-
-	// 최적화로 제곱근X
-	const FVector CurrentLocation = InstanceData.EnemyCharacter->GetActorLocation();
-	
-	float EffectiveAcceptanceRadius = InstanceData.AcceptanceRadius;
-	if (const UCapsuleComponent* Capsule = InstanceData.EnemyCharacter->GetCapsuleComponent())
-	{
-		EffectiveAcceptanceRadius += Capsule->GetScaledCapsuleRadius();
-	}
-	const float AcceptanceRadiusSq = FMath::Square(EffectiveAcceptanceRadius);
-	if (FVector::DistSquared2D(CurrentLocation, GoalLocation) <= AcceptanceRadiusSq)
-	{
-		return EStateTreeRunStatus::Succeeded;
-	}
-
-	// 멀어지면 다시요청
-	const float RepathDistanceSq = FMath::Square(InstanceData.RepathDistance);
-	if (FVector::DistSquared2D(InstanceData.LastRequestedMoveLocation, GoalLocation) >= RepathDistanceSq)
-	{
-		return RequestMove(InstanceData);
-	}
-
-	return EStateTreeRunStatus::Running;
+	return RequestMove(InstanceData);
 }
 
-void FSTTask_MoveToLastKnownTargetLocation::ExitState(FStateTreeExecutionContext& Context,
+void FSTTask_MoveToLastKnownTargetLocation::ExitState(
+	FStateTreeExecutionContext& Context,
 	const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
 	if (!InstanceData.EnemyCharacter)
 	{
 		return;
@@ -222,6 +202,10 @@ void FSTTask_MoveToLastKnownTargetLocation::ExitState(FStateTreeExecutionContext
 	{
 		AIController->StopMovement();
 	}
+
+	InstanceData.LastRequestedTarget.Reset();
+	InstanceData.LastRequestedMoveLocation = FVector::ZeroVector;
+	InstanceData.bLastRequestWasActor = false;
 }
 
 EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstanceDataType& InstanceData)
@@ -231,9 +215,60 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstance
 	{
 		return EStateTreeRunStatus::Failed;
 	}
+	
+	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+	if (!AIController)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	
+	if (AActor* CombatTarget = EnemyCharacter->GetCombatTarget())
+	{
+		if (ICombatInterface* CombatTargetInterface = Cast<ICombatInterface>(CombatTarget))
+		{
+			if (CombatTargetInterface->IsDead())
+			{
+				return EStateTreeRunStatus::Failed;
+			}
+		}
+
+		if (InstanceData.bLastRequestWasActor && InstanceData.LastRequestedTarget.Get() == CombatTarget)
+		{
+			const EPathFollowingStatus::Type MoveStatus = AIController->GetMoveStatus();
+			if (MoveStatus == EPathFollowingStatus::Moving || MoveStatus == EPathFollowingStatus::Waiting)
+			{
+				return EStateTreeRunStatus::Running;
+			}
+		}
+		
+		return RequestMoveToActor(InstanceData, CombatTarget);
+	}
 
 	const FVector GoalLocation = EnemyCharacter->GetLastKnownTargetLocation();
 	if (GoalLocation.IsNearlyZero())
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	if (HasReachedLocation(InstanceData, GoalLocation))
+	{
+		return EStateTreeRunStatus::Succeeded;
+	}
+
+	if (!InstanceData.bLastRequestWasActor && InstanceData.LastRequestedMoveLocation.Equals(GoalLocation, 1.0f))
+	{
+		return EStateTreeRunStatus::Running;
+	}
+
+	return RequestMoveToLocation(InstanceData, GoalLocation);
+}
+
+EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToActor(
+	FInstanceDataType& InstanceData,
+	AActor* TargetActor)
+{
+	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter || !TargetActor)
 	{
 		return EStateTreeRunStatus::Failed;
 	}
@@ -244,9 +279,44 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstance
 		return EStateTreeRunStatus::Failed;
 	}
 
-	InstanceData.LastRequestedMoveLocation = GoalLocation;
+	const EPathFollowingRequestResult::Type MoveResult =
+		AIController->MoveToActor(
+			TargetActor,
+			InstanceData.AcceptanceRadius,
+			true,
+			true,
+			true,
+			nullptr,
+			true);
 
-	// 출발!
+	if (MoveResult == EPathFollowingRequestResult::Failed)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	InstanceData.LastRequestedTarget = TargetActor;
+	InstanceData.LastRequestedMoveLocation = FVector::ZeroVector;
+	InstanceData.bLastRequestWasActor = true;
+
+	return EStateTreeRunStatus::Running;
+}
+
+EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation(
+	FInstanceDataType& InstanceData,
+	const FVector& GoalLocation)
+{
+	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+	if (!AIController)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
 	const EPathFollowingRequestResult::Type MoveResult =
 		AIController->MoveToLocation(
 			GoalLocation,
@@ -263,13 +333,220 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstance
 		return EStateTreeRunStatus::Failed;
 	}
 
+	InstanceData.LastRequestedTarget.Reset();
+	InstanceData.LastRequestedMoveLocation = GoalLocation;
+	InstanceData.bLastRequestWasActor = false;
+
 	if (MoveResult == EPathFollowingRequestResult::AlreadyAtGoal)
 	{
 		return EStateTreeRunStatus::Succeeded;
 	}
-	
+
 	return EStateTreeRunStatus::Running;
 }
+
+bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(
+	const FInstanceDataType& InstanceData,
+	const FVector& GoalLocation)
+{
+	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter)
+	{
+		return false;
+	}
+
+	const FVector CurrentLocation = EnemyCharacter->GetActorLocation();
+
+	return FVector::DistSquared2D(CurrentLocation, GoalLocation) <= FMath::Square(InstanceData.AcceptanceRadius);
+}
+
+// void FSTTask_MoveToLastKnownTargetLocation::ExitState(FStateTreeExecutionContext& Context,
+// 	const FStateTreeTransitionResult& Transition) const
+// {
+// 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+// 	if (!InstanceData.EnemyCharacter)
+// 	{
+// 		return;
+// 	}
+//
+// 	if (AAIController* AIController = Cast<AAIController>(InstanceData.EnemyCharacter->GetController()))
+// 	{
+// 		AIController->StopMovement();
+// 	}
+// }
+//
+//
+//
+// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(
+// 	FInstanceDataType& InstanceData)
+// {
+// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::Tick(
+// 	FStateTreeExecutionContext& Context,
+// 	const float DeltaTime) const
+// {
+// 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+//
+// 	if (!InstanceData.EnemyCharacter)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	return RequestMove(InstanceData);
+// }
+//
+// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(
+// 	FInstanceDataType& InstanceData)
+// {
+// 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+// 	if (!EnemyCharacter)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	if (AActor* CombatTarget = EnemyCharacter->GetCombatTarget())
+// 	{
+// 		if (ICombatInterface* CombatTargetInterface = Cast<ICombatInterface>(CombatTarget))
+// 		{
+// 			if (CombatTargetInterface->IsDead())
+// 			{
+// 				return EStateTreeRunStatus::Failed;
+// 			}
+// 		}
+//
+// 		if (InstanceData.bLastRequestWasActor &&
+// 			InstanceData.LastRequestedTarget.Get() == CombatTarget)
+// 		{
+// 			return EStateTreeRunStatus::Running;
+// 		}
+//
+// 		return RequestMoveToActor(InstanceData, CombatTarget);
+// 	}
+//
+// 	const FVector GoalLocation = EnemyCharacter->GetLastKnownTargetLocation();
+// 	if (GoalLocation.IsNearlyZero())
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	if (HasReachedLocation(InstanceData, GoalLocation))
+// 	{
+// 		return EStateTreeRunStatus::Succeeded;
+// 	}
+//
+// 	if (!InstanceData.bLastRequestWasActor &&
+// 		InstanceData.LastRequestedMoveLocation.Equals(GoalLocation, 1.0f))
+// 	{
+// 		return EStateTreeRunStatus::Running;
+// 	}
+//
+// 	return RequestMoveToLocation(InstanceData, GoalLocation);
+// }
+//
+// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToActor(
+// 	FInstanceDataType& InstanceData,
+// 	AActor* TargetActor)
+// {
+// 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+// 	if (!EnemyCharacter || !TargetActor)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+// 	if (!AIController)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	const EPathFollowingRequestResult::Type MoveResult =
+// 		AIController->MoveToActor(
+// 			TargetActor,
+// 			InstanceData.AcceptanceRadius,
+// 			true,
+// 			true,
+// 			true,
+// 			nullptr,
+// 			true);
+//
+// 	if (MoveResult == EPathFollowingRequestResult::Failed)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	InstanceData.LastRequestedTarget = TargetActor;
+// 	InstanceData.LastRequestedMoveLocation = FVector::ZeroVector;
+// 	InstanceData.bLastRequestWasActor = true;
+//
+// 	return EStateTreeRunStatus::Running;
+// }
+//
+// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation(
+// 	FInstanceDataType& InstanceData,
+// 	const FVector& GoalLocation)
+// {
+// 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+// 	if (!EnemyCharacter)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+// 	if (!AIController)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	const EPathFollowingRequestResult::Type MoveResult =
+// 		AIController->MoveToLocation(
+// 			GoalLocation,
+// 			0.0f,
+// 			true,
+// 			true,
+// 			true,
+// 			false,
+// 			nullptr,
+// 			true);
+//
+// 	if (MoveResult == EPathFollowingRequestResult::Failed)
+// 	{
+// 		return EStateTreeRunStatus::Failed;
+// 	}
+//
+// 	InstanceData.LastRequestedTarget.Reset();
+// 	InstanceData.LastRequestedMoveLocation = GoalLocation;
+// 	InstanceData.bLastRequestWasActor = false;
+//
+// 	if (MoveResult == EPathFollowingRequestResult::AlreadyAtGoal)
+// 	{
+// 		return EStateTreeRunStatus::Succeeded;
+// 	}
+//
+// 	return EStateTreeRunStatus::Running;
+// }
+//
+//
+// 	bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(
+// 		const FInstanceDataType& InstanceData,
+// 		const FVector& GoalLocation)
+// {
+// 	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+// 	if (!EnemyCharacter)
+// 	{
+// 		return false;
+// 	}
+//
+// 	float EffectiveAcceptanceRadius = InstanceData.AcceptanceRadius;
+//
+// 	if (const UCapsuleComponent* CapsuleComponent = EnemyCharacter->GetCapsuleComponent())
+// 	{
+// 		EffectiveAcceptanceRadius += CapsuleComponent->GetScaledCapsuleRadius();
+// 	}
+//
+// 	const FVector CurrentLocation = EnemyCharacter->GetActorLocation();
+//
+// 	return FVector::DistSquared2D(CurrentLocation, GoalLocation) <=
+// 		FMath::Square(EffectiveAcceptanceRadius);
+// }
 
 #if WITH_EDITOR
 FText FSTTask_MoveToLastKnownTargetLocation::GetDescription(

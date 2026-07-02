@@ -25,7 +25,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Perception", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAISenseConfig_Sight> SightConfig;
 	
-	FTimerHandle UpdateLastKnownTargetLocationTimerHandle;
+	// FTimerHandle UpdateLastKnownTargetLocationTimerHandle;
 	TWeakObjectPtr<AActor> VisibleTarget;
 	
 
@@ -46,7 +46,7 @@ protected:
 	void OnTargetPerceptionForgotten(AActor* Actor);
 	
 private:
-	void StartLastKnownTargetLocationUpdate(AActor* TargetActor);
-	void StopLastKnownTargetLocationUpdate();
-	void UpdateLastKnownTargetLocation();
+	// void StartLastKnownTargetLocationUpdate(AActor* TargetActor);
+	// void StopLastKnownTargetLocationUpdate();
+	// void UpdateLastKnownTargetLocation();
 };

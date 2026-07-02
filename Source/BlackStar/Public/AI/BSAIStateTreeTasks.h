@@ -82,12 +82,9 @@ struct FSTTask_MoveToLastKnownTargetLocationInstanceData
 	UPROPERTY(EditAnywhere, Category = "Parameter")
 	float AcceptanceRadius = 120.0f;
 
-	// 목표가 이만큼 이동하면 갱신
-	UPROPERTY(EditAnywhere, Category = "Parameter")
-	float RepathDistance = 100.0f;
-
-	// 마지막으로 요청한 이동 위치, RepathDistance에서 사용
+	TWeakObjectPtr<AActor> LastRequestedTarget = nullptr;
 	FVector LastRequestedMoveLocation = FVector::ZeroVector;
+	bool bLastRequestWasActor = false;
 };
 
 USTRUCT(meta = (DisplayName = "Move To Last Known Target Location", Category = "BlackStar|AI"))
@@ -122,4 +119,7 @@ struct FSTTask_MoveToLastKnownTargetLocation : public FStateTreeTaskCommonBase
 
 private:
 	static EStateTreeRunStatus RequestMove(FInstanceDataType& InstanceData);
+	static EStateTreeRunStatus RequestMoveToActor(FInstanceDataType& InstanceData, AActor* TargetActor);
+	static EStateTreeRunStatus RequestMoveToLocation(FInstanceDataType& InstanceData, const FVector& GoalLocation);
+	static bool HasReachedLocation(const FInstanceDataType& InstanceData, const FVector& GoalLocation);
 };
