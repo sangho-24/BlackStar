@@ -33,6 +33,7 @@ private:
 public:
 	ABSAIController();
 	void SendDeathStateTreeEvent();
+	AActor* GetVisibleTarget() const { return VisibleTarget.Get(); }
 
 protected:
 	virtual void OnPossess(APawn *InPawn) override;
