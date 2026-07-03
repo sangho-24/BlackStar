@@ -231,7 +231,7 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
 	ContextHandle.AddHitResult(HitResult);
 	ContextHandle.AddInstigator(CurrentActorInfo->AvatarActor.Get(), CurrentActorInfo->AvatarActor.Get());
-
+	// ===== 데미지 적용
 	FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(MeleeDamageEffect, 1.0f, ContextHandle);
 	if (!SpecHandle.IsValid())
 	{
@@ -248,6 +248,7 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 	SpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_Damage, -FinalDamage);
 	SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 
+	// ===== 겜플큐 적용
 	if (ActiveTraceData.HitCueTag.IsValid())
 	{
 		FGameplayCueParameters CueParameters;
@@ -258,6 +259,14 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 		CueParameters.EffectCauser = CurrentActorInfo->AvatarActor.Get();
 		CueParameters.Instigator = CurrentActorInfo->AvatarActor.Get();
 		TargetASC->ExecuteGameplayCue(ActiveTraceData.HitCueTag, CueParameters);
+	}
+	// ===== 리액션 적용
+	if (ICombatInterface* CombatTarget = Cast<ICombatInterface>(TargetActor))
+	{
+		CombatTarget->ApplyHitReaction(
+			CurrentActorInfo->AvatarActor.Get(),
+			HitResult,
+			ActiveTraceData.HitReactionData);
 	}
 }
 

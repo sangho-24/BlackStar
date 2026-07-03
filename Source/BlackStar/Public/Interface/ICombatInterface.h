@@ -22,4 +22,7 @@ public:
 	virtual AActor *GetCombatTarget() const { return nullptr; }
 	virtual void SetCombatTarget(AActor *NewTarget) {}
 	virtual void ClearCombatTarget() {}
+	
+	virtual void ApplyHitReaction(
+	AActor* Attacker, const FHitResult& HitResult, const FBSHitReactionData& ReactionData) {}
 };

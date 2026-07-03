@@ -10,7 +10,7 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Components/CapsuleComponent.h"
 
-// ===== ActivateAbilityByTag =====
+// ===== 어빌리티 발동!! =====
 FSTTask_ActivateAbilityByTag::FSTTask_ActivateAbilityByTag()
 {
 	bShouldCallTick = false;
@@ -90,8 +90,7 @@ EStateTreeRunStatus FSTTask_ActivateAbilityByTag::EnterState(
 }
 
 void FSTTask_ActivateAbilityByTag::ExitState(
-	FStateTreeExecutionContext& Context,
-	const FStateTreeTransitionResult& Transition) const
+	FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
@@ -139,26 +138,23 @@ void FSTTask_ActivateAbilityByTag::UnbindAbilityEndedDelegate(FInstanceDataType&
 }
 
 #if WITH_EDITOR
-FText FSTTask_ActivateAbilityByTag::GetDescription(
-	const FGuid& ID,
-	FStateTreeDataView InstanceDataView,
-	const IStateTreeBindingLookup& BindingLookup,
-	EStateTreeNodeFormatting Formatting) const
+FText FSTTask_ActivateAbilityByTag::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
+	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString(TEXT("태그로 GAS어빌리티 발동!!"));
 }
 #endif
 
 
-// ===== MoveToLastKnownTargetLocation =====
+// ===== 퍼셉션 위치로 이동!! =====
 FSTTask_MoveToLastKnownTargetLocation::FSTTask_MoveToLastKnownTargetLocation()
 {
 	bShouldCallTick = true;
 	bShouldStateChangeOnReselect = false;
 }
 
-EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::EnterState(FStateTreeExecutionContext& Context,
-	const FStateTreeTransitionResult& Transition) const
+EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::EnterState(
+	FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
@@ -174,8 +170,8 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::EnterState(FStateTree
 	return RequestMove(InstanceData);
 }
 
-EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::Tick(FStateTreeExecutionContext& Context,
-	const float DeltaTime) const
+EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::Tick(
+	FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
@@ -188,8 +184,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::Tick(FStateTreeExecut
 }
 
 void FSTTask_MoveToLastKnownTargetLocation::ExitState(
-	FStateTreeExecutionContext& Context,
-	const FStateTreeTransitionResult& Transition) const
+	FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
@@ -264,8 +259,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstance
 }
 
 EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToActor(
-	FInstanceDataType& InstanceData,
-	AActor* TargetActor)
+	FInstanceDataType& InstanceData, AActor* TargetActor)
 {
 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter || !TargetActor)
@@ -302,8 +296,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToActor(
 }
 
 EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation(
-	FInstanceDataType& InstanceData,
-	const FVector& GoalLocation)
+	FInstanceDataType& InstanceData, const FVector& GoalLocation)
 {
 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter)
@@ -346,8 +339,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation
 }
 
 bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(
-	const FInstanceDataType& InstanceData,
-	const FVector& GoalLocation)
+	const FInstanceDataType& InstanceData, const FVector& GoalLocation)
 {
 	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter)
@@ -360,201 +352,49 @@ bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(
 	return FVector::DistSquared2D(CurrentLocation, GoalLocation) <= FMath::Square(InstanceData.AcceptanceRadius);
 }
 
-// void FSTTask_MoveToLastKnownTargetLocation::ExitState(FStateTreeExecutionContext& Context,
-// 	const FStateTreeTransitionResult& Transition) const
-// {
-// 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-// 	if (!InstanceData.EnemyCharacter)
-// 	{
-// 		return;
-// 	}
-//
-// 	if (AAIController* AIController = Cast<AAIController>(InstanceData.EnemyCharacter->GetController()))
-// 	{
-// 		AIController->StopMovement();
-// 	}
-// }
-//
-//
-//
-// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(
-// 	FInstanceDataType& InstanceData)
-// {
-// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::Tick(
-// 	FStateTreeExecutionContext& Context,
-// 	const float DeltaTime) const
-// {
-// 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-//
-// 	if (!InstanceData.EnemyCharacter)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	return RequestMove(InstanceData);
-// }
-//
-// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(
-// 	FInstanceDataType& InstanceData)
-// {
-// 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
-// 	if (!EnemyCharacter)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	if (AActor* CombatTarget = EnemyCharacter->GetCombatTarget())
-// 	{
-// 		if (ICombatInterface* CombatTargetInterface = Cast<ICombatInterface>(CombatTarget))
-// 		{
-// 			if (CombatTargetInterface->IsDead())
-// 			{
-// 				return EStateTreeRunStatus::Failed;
-// 			}
-// 		}
-//
-// 		if (InstanceData.bLastRequestWasActor &&
-// 			InstanceData.LastRequestedTarget.Get() == CombatTarget)
-// 		{
-// 			return EStateTreeRunStatus::Running;
-// 		}
-//
-// 		return RequestMoveToActor(InstanceData, CombatTarget);
-// 	}
-//
-// 	const FVector GoalLocation = EnemyCharacter->GetLastKnownTargetLocation();
-// 	if (GoalLocation.IsNearlyZero())
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	if (HasReachedLocation(InstanceData, GoalLocation))
-// 	{
-// 		return EStateTreeRunStatus::Succeeded;
-// 	}
-//
-// 	if (!InstanceData.bLastRequestWasActor &&
-// 		InstanceData.LastRequestedMoveLocation.Equals(GoalLocation, 1.0f))
-// 	{
-// 		return EStateTreeRunStatus::Running;
-// 	}
-//
-// 	return RequestMoveToLocation(InstanceData, GoalLocation);
-// }
-//
-// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToActor(
-// 	FInstanceDataType& InstanceData,
-// 	AActor* TargetActor)
-// {
-// 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
-// 	if (!EnemyCharacter || !TargetActor)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
-// 	if (!AIController)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	const EPathFollowingRequestResult::Type MoveResult =
-// 		AIController->MoveToActor(
-// 			TargetActor,
-// 			InstanceData.AcceptanceRadius,
-// 			true,
-// 			true,
-// 			true,
-// 			nullptr,
-// 			true);
-//
-// 	if (MoveResult == EPathFollowingRequestResult::Failed)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	InstanceData.LastRequestedTarget = TargetActor;
-// 	InstanceData.LastRequestedMoveLocation = FVector::ZeroVector;
-// 	InstanceData.bLastRequestWasActor = true;
-//
-// 	return EStateTreeRunStatus::Running;
-// }
-//
-// EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation(
-// 	FInstanceDataType& InstanceData,
-// 	const FVector& GoalLocation)
-// {
-// 	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
-// 	if (!EnemyCharacter)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
-// 	if (!AIController)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	const EPathFollowingRequestResult::Type MoveResult =
-// 		AIController->MoveToLocation(
-// 			GoalLocation,
-// 			0.0f,
-// 			true,
-// 			true,
-// 			true,
-// 			false,
-// 			nullptr,
-// 			true);
-//
-// 	if (MoveResult == EPathFollowingRequestResult::Failed)
-// 	{
-// 		return EStateTreeRunStatus::Failed;
-// 	}
-//
-// 	InstanceData.LastRequestedTarget.Reset();
-// 	InstanceData.LastRequestedMoveLocation = GoalLocation;
-// 	InstanceData.bLastRequestWasActor = false;
-//
-// 	if (MoveResult == EPathFollowingRequestResult::AlreadyAtGoal)
-// 	{
-// 		return EStateTreeRunStatus::Succeeded;
-// 	}
-//
-// 	return EStateTreeRunStatus::Running;
-// }
-//
-//
-// 	bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(
-// 		const FInstanceDataType& InstanceData,
-// 		const FVector& GoalLocation)
-// {
-// 	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
-// 	if (!EnemyCharacter)
-// 	{
-// 		return false;
-// 	}
-//
-// 	float EffectiveAcceptanceRadius = InstanceData.AcceptanceRadius;
-//
-// 	if (const UCapsuleComponent* CapsuleComponent = EnemyCharacter->GetCapsuleComponent())
-// 	{
-// 		EffectiveAcceptanceRadius += CapsuleComponent->GetScaledCapsuleRadius();
-// 	}
-//
-// 	const FVector CurrentLocation = EnemyCharacter->GetActorLocation();
-//
-// 	return FVector::DistSquared2D(CurrentLocation, GoalLocation) <=
-// 		FMath::Square(EffectiveAcceptanceRadius);
-// }
-
 #if WITH_EDITOR
-FText FSTTask_MoveToLastKnownTargetLocation::GetDescription(
-	const FGuid& ID,
-	FStateTreeDataView InstanceDataView,
-	const IStateTreeBindingLookup& BindingLookup,
-	EStateTreeNodeFormatting Formatting) const
+FText FSTTask_MoveToLastKnownTargetLocation::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
+	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
 {
 	return FText::FromString(TEXT("퍼셉션 위치로 이동!!"));
 }
 #endif
+
+// ===== 잠시 대기!! ======
+FSTTask_WaitRandom::FSTTask_WaitRandom()
+{
+	bShouldCallTick = true;
+	bShouldStateChangeOnReselect = false;
+}
+
+EStateTreeRunStatus FSTTask_WaitRandom::EnterState(
+	FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
+	const float MinTime = FMath::Max(0.0f, InstanceData.MinWaitTime);
+	const float MaxTime = FMath::Max(MinTime, InstanceData.MaxWaitTime);
+
+	InstanceData.ElapsedTime = 0.0f;
+	InstanceData.TargetWaitTime = FMath::RandRange(MinTime, MaxTime);
+
+	return InstanceData.TargetWaitTime <= 0.0f
+		? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Running;
+}
+
+EStateTreeRunStatus FSTTask_WaitRandom::Tick(
+	FStateTreeExecutionContext& Context, const float DeltaTime) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
+	InstanceData.ElapsedTime += DeltaTime;
+
+	return InstanceData.ElapsedTime >= InstanceData.TargetWaitTime
+		? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Running;
+}
+
+FText FSTTask_WaitRandom::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
+	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
+{
+	return FText::FromString(TEXT("잠시 대기!!"));
+}

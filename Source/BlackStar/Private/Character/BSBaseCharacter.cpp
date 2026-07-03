@@ -10,6 +10,7 @@
 #include "Animation/AnimMontage.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Utility/BSGameplayTags.h"
+#include "Component/BSHitReactionComponent.h"
 
 ABSBaseCharacter::ABSBaseCharacter()
 {
@@ -18,8 +19,10 @@ ABSBaseCharacter::ABSBaseCharacter()
 	AbilitySystemComponent = CreateDefaultSubobject<UBSAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+	
 	AttributeSet = CreateDefaultSubobject<UBSBaseAttributeSet>(TEXT("AttributeSet"));
 	
+	HitReactionComponent = CreateDefaultSubobject<UBSHitReactionComponent>(TEXT("HitReactionComponent"));
 }
 
 void ABSBaseCharacter::BeginPlay()
@@ -183,6 +186,15 @@ void ABSBaseCharacter::Death(AActor* Killer)
 	OnDeathStarted(DeathKiller.Get());
 	DisableCharacterOnDeath();
 	PlayDeathMontage();
+}
+
+void ABSBaseCharacter::ApplyHitReaction(AActor* Attacker, const FHitResult& HitResult,
+	const FBSHitReactionData& ReactionData)
+{
+	if (HitReactionComponent)
+	{
+		HitReactionComponent->ApplyHitReaction(Attacker, HitResult, ReactionData);
+	}
 }
 
 void ABSBaseCharacter::DisableCharacterOnDeath()

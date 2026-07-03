@@ -12,6 +12,7 @@ class ABSEnemyCharacter;
 class AAIController;
 class UBSAbilitySystemComponent;
 
+// ===== 어빌리티 발동!! =====
 USTRUCT()
 struct FSTTask_ActivateAbilityByTagInstanceData
 {
@@ -70,6 +71,7 @@ private:
 	static void UnbindAbilityEndedDelegate(FInstanceDataType& InstanceData);
 };
 
+// ===== 타겟에게 이동!! =====
 USTRUCT()
 struct FSTTask_MoveToLastKnownTargetLocationInstanceData
 {
@@ -122,4 +124,47 @@ private:
 	static EStateTreeRunStatus RequestMoveToActor(FInstanceDataType& InstanceData, AActor* TargetActor);
 	static EStateTreeRunStatus RequestMoveToLocation(FInstanceDataType& InstanceData, const FVector& GoalLocation);
 	static bool HasReachedLocation(const FInstanceDataType& InstanceData, const FVector& GoalLocation);
+};
+
+// ===== 잠시 대기!! ======
+USTRUCT()
+struct FSTTask_WaitRandomInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	float MinWaitTime = 0.4f;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	float MaxWaitTime = 1.2f;
+
+	float ElapsedTime = 0.0f;
+	float TargetWaitTime = 0.0f;
+};
+
+USTRUCT(meta = (DisplayName = "Wait Random", Category = "BlackStar|AI"))
+struct FSTTask_WaitRandom : public FStateTreeTaskCommonBase
+{
+	GENERATED_BODY()
+
+	FSTTask_WaitRandom();
+
+	using FInstanceDataType = FSTTask_WaitRandomInstanceData;
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+
+	virtual EStateTreeRunStatus EnterState(
+		FStateTreeExecutionContext& Context,
+		const FStateTreeTransitionResult& Transition) const override;
+
+	virtual EStateTreeRunStatus Tick(
+		FStateTreeExecutionContext& Context,
+		const float DeltaTime) const override;
+	
+#if WITH_EDITOR
+	virtual FText GetDescription(
+		const FGuid& ID,
+		FStateTreeDataView InstanceDataView,
+		const IStateTreeBindingLookup& BindingLookup,
+		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
+#endif
 };

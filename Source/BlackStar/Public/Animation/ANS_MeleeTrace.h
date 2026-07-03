@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameplayTagContainer.h"
+#include "Ability/BSAbilityTypes.h"
 #include "ANS_MeleeTrace.generated.h"
 
 UCLASS()
@@ -28,6 +29,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trace")
 	FGameplayTag HitCueTag;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reaction")
+	FBSHitReactionData HitReactionData;
 
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference) override;
 	virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;

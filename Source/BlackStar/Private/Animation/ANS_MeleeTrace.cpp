@@ -1,6 +1,6 @@
 #include "Animation/ANS_MeleeTrace.h"
 
-#include "Ability/BSAbilityTypes.h"
+
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Interface/IAbilityAnimationInterface.h"
@@ -23,6 +23,7 @@ void UANS_MeleeTrace::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenc
 		Data.ExtraLength = ExtraLength;
 		Data.DamageMultiplier = DamageMultiplier;
 		Data.HitCueTag = HitCueTag;
+		Data.HitReactionData = HitReactionData;
 		AnimChar->SetMeleeTraceData(Data);
 	}
 

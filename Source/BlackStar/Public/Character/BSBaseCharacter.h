@@ -14,6 +14,7 @@ class UBSBaseAttributeSet;
 class UBSAbilitySet;
 class UGameplayAbility;
 class AFloatingDamageActor;
+class UBSHitReactionComponent;
 
 
 UCLASS()
@@ -28,6 +29,9 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UBSAbilitySystemComponent> AbilitySystemComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<UBSHitReactionComponent> HitReactionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UBSBaseAttributeSet> AttributeSet;
@@ -40,6 +44,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Abilities|Setup")
 	TMap<FGameplayTag, FAbilitySkillData> AbilitySkillDataMap;
+	
+	
 
 	FMeleeTraceData CachedMeleeTraceData;
 	FProjectileData CachedProjectileData;
@@ -92,6 +98,7 @@ public:
 	virtual void SpawnFloatingDamage(const float Amount, const bool bIsHeal, const bool bIsCritical) override;
 	virtual void Death(AActor* Killer) override;
 	virtual bool IsDead() const override { return bIsDead; }
+	virtual void ApplyHitReaction(AActor* Attacker, const FHitResult& HitResult, const FBSHitReactionData& ReactionData) override;
 	
 private:
 	void DisableCharacterOnDeath();
