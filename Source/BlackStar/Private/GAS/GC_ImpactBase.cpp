@@ -2,6 +2,7 @@
 #include "GAS/GC_ImpactBase.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "Controller/BSPlayerController.h"
 
 bool UGC_ImpactBase::OnExecute_Implementation(AActor* MyTarget, const FGameplayCueParameters& Parameters) const
 {
@@ -47,13 +48,61 @@ bool UGC_ImpactBase::OnExecute_Implementation(AActor* MyTarget, const FGameplayC
 		bPlayedAnything = true;
 	}
 	
+	if (CameraShakeClass && CameraShakeScale > 0.0f)
+	{
+		if (CameraShakeOuterRadius > 0.0f)
+		{
+			UGameplayStatics::PlayWorldCameraShake(
+				World,
+				CameraShakeClass,
+				ImpactLocation,
+				CameraShakeInnerRadius,
+				CameraShakeOuterRadius,
+				CameraShakeScale,
+				false);
+		}
+		else
+		{
+			if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0))
+			{
+				PlayerController->ClientStartCameraShake(CameraShakeClass, CameraShakeScale);
+			}
+		}
+		bPlayedAnything = true;
+	}
+	
+	if (HitStopDuration > 0.0f && HitStopTimeDilation > 0.0f)
+	{
+		ABSPlayerController* BSPC = Cast<ABSPlayerController>(UGameplayStatics::GetPlayerController(World, 0));
+		if (BSPC && !BSPC->GetIsHitStopActive())
+		{
+			BSPC->SetIsHitStopActive(true);
+			const float PreviousTimeDilation = UGameplayStatics::GetGlobalTimeDilation(World);
+			UGameplayStatics::SetGlobalTimeDilation(World, HitStopTimeDilation);
+			FTimerHandle TimerHandle;
+			const float TimerDelay = HitStopDuration * HitStopTimeDilation;
+			
+		World->GetTimerManager().SetTimer(
+			TimerHandle,
+			[World, PreviousTimeDilation, BSPC]()
+			{
+				if (!World)
+					return;
+				UGameplayStatics::SetGlobalTimeDilation(World, PreviousTimeDilation);
+				BSPC->SetIsHitStopActive(false);
+			},
+			TimerDelay,
+			false);
+		bPlayedAnything = true;
+		}
+	}
+	
 	return bPlayedAnything;
 }
 
 FVector UGC_ImpactBase::ResolveImpactLocation(AActor* MyTarget, const FGameplayCueParameters& Parameters) const
 {
-	if (const FHitResult* HitResult =
-		Parameters.EffectContext.GetHitResult())
+	if (const FHitResult* HitResult = Parameters.EffectContext.GetHitResult())
 	{
 		if (!HitResult->ImpactPoint.IsNearlyZero())
 		{

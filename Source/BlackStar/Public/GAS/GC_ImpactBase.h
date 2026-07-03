@@ -31,17 +31,34 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Cue|Impact")
 	bool bUseTargetLocationAsFallback = true;
 	
+	// ===== 카메라 셰이크 =====
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Cue|Camera Shake")
+	TSubclassOf<UCameraShakeBase> CameraShakeClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Cue|Camera Shake", meta = (ClampMin = "0.0"))
+	float CameraShakeScale = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Cue|Camera Shake", meta = (ClampMin = "0.0"))
+	float CameraShakeInnerRadius = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Cue|Camera Shake", meta = (ClampMin = "0.0"))
+	float CameraShakeOuterRadius = 0.0f;
+
+	// ===== 히트 스탑 =====
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Cue|Hit Stop", meta = (ClampMin = "0.0"))
+	float HitStopDuration = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Cue|Hit Stop", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float HitStopTimeDilation = 0.0f;
+	
 public:
 	virtual bool OnExecute_Implementation(
 		AActor* MyTarget,
 		const FGameplayCueParameters& Parameters) const override;
 	
 protected:
-	FVector ResolveImpactLocation(
-		AActor* MyTarget,
-		const FGameplayCueParameters& Parameters) const;
+	FVector ResolveImpactLocation(AActor* MyTarget, const FGameplayCueParameters& Parameters) const;
 
-	FVector ResolveImpactNormal(
-		const FGameplayCueParameters& Parameters) const;
+	FVector ResolveImpactNormal(const FGameplayCueParameters& Parameters) const;
 	
 };

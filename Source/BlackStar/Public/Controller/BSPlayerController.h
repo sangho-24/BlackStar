@@ -39,6 +39,12 @@ private:
 	UPROPERTY()
 	TObjectPtr<UAbilitySystemComponent> CachedASC;
 	
+	bool bIsHitStopActive  = false;
+	
+public:
+	void SetIsHitStopActive(bool isActive){bIsHitStopActive = isActive;}
+	bool GetIsHitStopActive() const {return bIsHitStopActive;}
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
