@@ -11,6 +11,7 @@
 #include "Utility/BSGameplayTags.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
+#include "GameplayEffect.h"
 
 ABSPlayerCharacter::ABSPlayerCharacter()
 {
@@ -48,7 +49,23 @@ void ABSPlayerCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	if (CameraBoom)
+	{
 		DesiredArmLength = CameraBoom->TargetArmLength;
+	}
+	
+	if (AbilitySystemComponent && StaminaRegenEffect)
+	{
+		FGameplayEffectContextHandle ContextHandle = AbilitySystemComponent->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+
+		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(
+			StaminaRegenEffect,1.0f,ContextHandle);
+
+		if (SpecHandle.IsValid())
+		{
+			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
 }
 
 void ABSPlayerCharacter::Tick(float DeltaTime)
@@ -115,6 +132,15 @@ void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputC
 		EnhancedInputComponent->BindAction(JumpInput, ETriggerEvent::Started, this, &ABSPlayerCharacter::JumpAction);
 		EnhancedInputComponent->BindAction(JumpInput, ETriggerEvent::Completed, this, &ABSPlayerCharacter::StopJumpingAction);
 	}
+	if (EvadeInput)
+	{
+		EnhancedInputComponent->BindAction(EvadeInput, ETriggerEvent::Triggered,this, &ABSPlayerCharacter::EvadeAction);
+	}
+	if (DashInput)
+	{
+		EnhancedInputComponent->BindAction(DashInput, ETriggerEvent::Triggered,this, &ABSPlayerCharacter::DashPressedAction);
+		EnhancedInputComponent->BindAction(DashInput, ETriggerEvent::Completed,this, &ABSPlayerCharacter::DashReleasedAction);
+	}
 	if (BasicSkillInput)
 	{
 		EnhancedInputComponent->BindAction(BasicSkillInput, ETriggerEvent::Started, this, &ABSPlayerCharacter::BasicSkillAction);
@@ -170,6 +196,37 @@ void ABSPlayerCharacter::ZoomAction(const FInputActionValue &Value)
 void ABSPlayerCharacter::JumpAction()
 {
 	Jump();
+}
+
+void ABSPlayerCharacter::EvadeAction()
+{
+	UE_LOG(LogTemp, Log, TEXT("EvadeAction 호출됨"));
+	UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent();
+	if (!BSASC)
+	{
+		return;
+	}
+	BSASC->AbilityInputTagPressed(BSGameplayTags::Input_Evade);
+}
+
+void ABSPlayerCharacter::DashPressedAction()
+{
+	UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent();
+	if (!BSASC)
+	{
+		return;
+	}
+	BSASC->AbilityInputTagPressed(BSGameplayTags::Input_Dash);
+}
+
+void ABSPlayerCharacter::DashReleasedAction()
+{
+	UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent();
+	if (!BSASC)
+	{
+		return;
+	}
+	BSASC->AbilityInputTagReleased(BSGameplayTags::Input_Dash);
 }
 
 void ABSPlayerCharacter::StopJumpingAction()
@@ -441,6 +498,24 @@ void ABSPlayerCharacter::ClearCombatTarget()
 {
 	LockOnTarget = nullptr;
 	StopLockOnUpdateTimer();
+}
+
+void ABSPlayerCharacter::ApplyStaminaRegenDelay()
+{
+	if (!AbilitySystemComponent || !StaminaRegenDelayEffect)
+	{
+		return;
+	}
+
+	FGameplayEffectContextHandle ContextHandle = AbilitySystemComponent->MakeEffectContext();
+	ContextHandle.AddSourceObject(this);
+
+	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(StaminaRegenDelayEffect,1.0f, ContextHandle);
+
+	if (SpecHandle.IsValid())
+	{
+		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	}
 }
 
 AActor *ABSPlayerCharacter::GetCombatTarget() const

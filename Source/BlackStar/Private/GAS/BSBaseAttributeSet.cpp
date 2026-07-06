@@ -9,6 +9,9 @@ UBSBaseAttributeSet::UBSBaseAttributeSet()
 	InitCurrentHP(100.0f);
 	InitMaxMP(100.0f);
 	InitCurrentMP(100.0f);
+	InitMaxStamina(100.0f);
+	InitStaminaRegenRate(3.0f);
+	InitCurrentStamina(100.0f);
 	InitMagicPower(0.0f);
 	InitAttackPower(0.0f);
 	InitDefense(0.0f);
@@ -26,7 +29,15 @@ void UBSBaseAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 	{
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxMP());
 	}
-	else if (Attribute == GetMaxHPAttribute() || Attribute == GetMaxMPAttribute())
+	else if (Attribute == GetCurrentStaminaAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
+	}
+	else if (Attribute == GetStaminaRegenRateAttribute())
+	{
+		NewValue = FMath::Max(NewValue, 0.0f);
+	}
+	else if (Attribute == GetMaxHPAttribute() || Attribute == GetMaxMPAttribute() || Attribute == GetMaxStaminaAttribute())
 	{
 		NewValue = FMath::Max(NewValue, 1.0f);
 	}
@@ -73,6 +84,10 @@ void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	{
 		SetCurrentMP(FMath::Clamp(GetCurrentMP(), 0.0f, GetMaxMP()));
 	}
+	if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute())
+	{
+		SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.0f, GetMaxStamina()));
+	}
 }
 
 void UBSBaseAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue)
@@ -86,5 +101,9 @@ void UBSBaseAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribut
 	else if (Attribute == GetMaxMPAttribute())
 	{
 		SetCurrentMP(FMath::Clamp(GetCurrentMP(), 0.0f, GetMaxMP()));
+	}
+	else if (Attribute == GetMaxStaminaAttribute())
+	{
+		SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.0f, GetMaxStamina()));
 	}
 }

@@ -75,6 +75,7 @@ void ABSPlayerController::OnPossess(APawn* InPawn)
 	// 초기값 업데이트
 	HUDWidget->UpdateHP(CachedAS->GetCurrentHP(), CachedAS->GetMaxHP());
 	HUDWidget->UpdateMP(CachedAS->GetCurrentMP(), CachedAS->GetMaxMP());
+	HUDWidget->UpdateStamina(CachedAS->GetCurrentStamina(), CachedAS->GetMaxStamina());
 	HUDWidget->UpdateStats(CachedAS);
 }
 
@@ -105,7 +106,14 @@ void ABSPlayerController::BindHUDDelegates()
 		CachedAS->GetMaxMPAttribute()).AddUObject(this, &ABSPlayerController::OnMPChanged);
 
 	CachedASC->GetGameplayAttributeValueChangeDelegate(
+		CachedAS->GetCurrentStaminaAttribute()).AddUObject(this, &ABSPlayerController::OnStaminaChanged);
+	CachedASC->GetGameplayAttributeValueChangeDelegate(
+		CachedAS->GetMaxStaminaAttribute()).AddUObject(this, &ABSPlayerController::OnStaminaChanged);
+
+	CachedASC->GetGameplayAttributeValueChangeDelegate(
 		CachedAS->GetMagicPowerAttribute()).AddUObject(this, &ABSPlayerController::OnStatsChanged);
+	CachedASC->GetGameplayAttributeValueChangeDelegate(
+		CachedAS->GetAttackPowerAttribute()).AddUObject(this, &ABSPlayerController::OnStatsChanged);
 	CachedASC->GetGameplayAttributeValueChangeDelegate(
 		CachedAS->GetDefenseAttribute()).AddUObject(this, &ABSPlayerController::OnStatsChanged);
 }
@@ -124,9 +132,16 @@ void ABSPlayerController::UnbindHUDDelegates()
 		UBSBaseAttributeSet::GetCurrentMPAttribute()).RemoveAll(this);
 	CachedASC->GetGameplayAttributeValueChangeDelegate(
 		UBSBaseAttributeSet::GetMaxMPAttribute()).RemoveAll(this);
+	
+	CachedASC->GetGameplayAttributeValueChangeDelegate(
+		UBSBaseAttributeSet::GetCurrentStaminaAttribute()).RemoveAll(this);
+	CachedASC->GetGameplayAttributeValueChangeDelegate(
+		UBSBaseAttributeSet::GetMaxStaminaAttribute()).RemoveAll(this);
 
 	CachedASC->GetGameplayAttributeValueChangeDelegate(
 		UBSBaseAttributeSet::GetMagicPowerAttribute()).RemoveAll(this);
+	CachedASC->GetGameplayAttributeValueChangeDelegate(
+		UBSBaseAttributeSet::GetAttackPowerAttribute()).RemoveAll(this);
 	CachedASC->GetGameplayAttributeValueChangeDelegate(
 		UBSBaseAttributeSet::GetDefenseAttribute()).RemoveAll(this);
 }
@@ -143,6 +158,13 @@ void ABSPlayerController::OnMPChanged(const FOnAttributeChangeData& Data)
 	if (!HUDWidget || !CachedAS)
 		return;
 	HUDWidget->UpdateMP(CachedAS->GetCurrentMP(), CachedAS->GetMaxMP());
+}
+
+void ABSPlayerController::OnStaminaChanged(const FOnAttributeChangeData& Data)
+{
+	if (!HUDWidget || !CachedAS)
+		return;
+	HUDWidget->UpdateStamina(CachedAS->GetCurrentStamina(), CachedAS->GetMaxStamina());
 }
 
 void ABSPlayerController::OnStatsChanged(const FOnAttributeChangeData& Data)

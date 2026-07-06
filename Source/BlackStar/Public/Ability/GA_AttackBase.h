@@ -15,7 +15,7 @@ class BLACKSTAR_API UGA_AttackBase : public UGameplayAbility
 
 public:
 	UGA_AttackBase();
-	virtual void PostInitProperties() override;
+	// virtual void PostInitProperties() override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Setup")

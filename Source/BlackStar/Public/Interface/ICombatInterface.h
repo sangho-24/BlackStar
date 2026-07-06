@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "Ability/BSAbilityTypes.h"
 #include "ICombatInterface.generated.h"
 
 UINTERFACE(MinimalAPI, BlueprintType)

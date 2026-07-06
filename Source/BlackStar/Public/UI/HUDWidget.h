@@ -21,6 +21,9 @@ private:
 	
 	UPROPERTY(meta = (BindWidget))
 	UProgressBar* MPProgressBar;
+	
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* StaminaProgressBar;
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* HPText;
@@ -41,6 +44,7 @@ public:
 	// 체력바 업데이트 함수
 	void UpdateHP(float CurrentHP, float MaxHP);
 	void UpdateMP(float CurrentMP, float MaxMP);
+	void UpdateStamina(float CurrentStamina, float MaxStamina);
 	void UpdateStats(const UBSBaseAttributeSet* AttributeSet);
 	
 };

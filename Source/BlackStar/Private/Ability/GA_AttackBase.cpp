@@ -21,17 +21,17 @@ UGA_AttackBase::UGA_AttackBase()
 	ActivationOwnedTags.AddTag(BSGameplayTags::State_Attacking);
 }
 
-void UGA_AttackBase::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	if (AbilityTag.IsValid())
-	{
-		FGameplayTagContainer AssetTags;
-		AssetTags.AddTag(AbilityTag);
-		SetAssetTags(AssetTags);
-	}
-}
+// void UGA_AttackBase::PostInitProperties()
+// {
+// 	Super::PostInitProperties();
+//
+// 	if (AbilityTag.IsValid())
+// 	{
+// 		FGameplayTagContainer AssetTags;
+// 		AssetTags.AddTag(AbilityTag);
+// 		SetAssetTags(AssetTags);
+// 	}
+// }
 
 void UGA_AttackBase::ActivateAbility(
 	const FGameplayAbilitySpecHandle Handle,

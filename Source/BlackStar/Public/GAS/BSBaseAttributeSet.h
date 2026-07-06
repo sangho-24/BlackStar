@@ -32,6 +32,18 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
 	FGameplayAttributeData MaxMP;
 	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, MaxMP)
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
+	FGameplayAttributeData CurrentStamina;
+	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, CurrentStamina)
+
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
+	FGameplayAttributeData MaxStamina;
+	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, MaxStamina)
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
+	FGameplayAttributeData StaminaRegenRate;
+	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, StaminaRegenRate)
 
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
 	FGameplayAttributeData MagicPower;

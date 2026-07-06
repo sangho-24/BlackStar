@@ -36,6 +36,15 @@ void UHUDWidget::UpdateMP(float CurrentMP, float MaxMP)
 	}
 }
 
+void UHUDWidget::UpdateStamina(float CurrentStamina, float MaxStamina)
+{
+	if (StaminaProgressBar && MaxStamina > 0.0f)
+	{
+		const float Percent = FMath::Clamp(CurrentStamina / MaxStamina, 0.0f, 1.0f);
+		StaminaProgressBar->SetPercent(Percent);
+	}
+}
+
 void UHUDWidget::UpdateStats(const UBSBaseAttributeSet* AttributeSet)
 {
 	if (!AttributeSet)

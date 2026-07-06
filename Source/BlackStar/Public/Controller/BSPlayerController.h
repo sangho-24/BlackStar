@@ -57,5 +57,6 @@ private:
 	// 델리게이트 콜백
 	void OnHPChanged(const FOnAttributeChangeData& Data);
 	void OnMPChanged(const FOnAttributeChangeData& Data);
+	void OnStaminaChanged(const FOnAttributeChangeData& Data);
 	void OnStatsChanged(const FOnAttributeChangeData& Data);
 };

@@ -9,6 +9,7 @@ class UInputAction;
 class USpringArmComponent;
 class UCameraComponent;
 class UAnimMontage;
+class UGameplayEffect;
 
 UCLASS()
 class BLACKSTAR_API ABSPlayerCharacter : public ABSBaseCharacter
@@ -34,6 +35,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
 	TObjectPtr<UInputAction> JumpInput;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
+	TObjectPtr<UInputAction> EvadeInput;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
+	TObjectPtr<UInputAction> DashInput;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Setup")
 	TObjectPtr<UInputAction> BasicSkillInput;
@@ -101,6 +108,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	float LockOnUpdateInterval = 0.5f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Setup")
+	TSubclassOf<UGameplayEffect> StaminaRegenEffect;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Setup")
+	TSubclassOf<UGameplayEffect> StaminaRegenDelayEffect;
 
 protected:
 	virtual void BeginPlay() override;
@@ -112,6 +125,10 @@ protected:
 	void LookAction(const FInputActionValue &Value);
 	void ZoomAction(const FInputActionValue &Value);
 	void JumpAction();
+	void EvadeAction();
+	void DashPressedAction();
+	void DashReleasedAction();
+	void StopDashAction();
 	void StopJumpingAction();
 	void BasicSkillAction();
 	void LockOnAction();
@@ -128,6 +145,7 @@ protected:
 
 public:
 	FVector2D GetCurrentMoveInput() const { return CurrentMoveInput; }
+	void ApplyStaminaRegenDelay();
 	// ===== 인터페이스 함수 =====
 	virtual AActor *GetCombatTarget() const override;
 	virtual void SetCombatTarget(AActor *NewTarget) override;
@@ -141,3 +159,4 @@ public:
 	FORCEINLINE USpringArmComponent *GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE UCameraComponent *GetFollowCamera() const { return FollowCamera; }
 };
+

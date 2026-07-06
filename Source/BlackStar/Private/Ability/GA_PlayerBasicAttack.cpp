@@ -7,16 +7,69 @@
 #include "GameFramework/Character.h"
 #include "Character/BSPlayerCharacter.h"
 #include "TimerManager.h"
+#include "GAS/BSBaseAttributeSet.h"
 
 
 UGA_PlayerBasicAttack::UGA_PlayerBasicAttack()
 {
 	AbilityTag = BSGameplayTags::Ability_Player_BasicAttack;
-	ActivationOwnedTags.AddTag(BSGameplayTags::State_Combo);
 
 	FGameplayTagContainer AssetTags;
 	AssetTags.AddTag(AbilityTag);
 	SetAssetTags(AssetTags);
+	
+	ActivationBlockedTags.AddTag(BSGameplayTags::State_Dead);
+}
+
+void UGA_PlayerBasicAttack::EndAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateEndAbility, bool bWasCancelled)
+{
+	if (bSpentStamina && ActorInfo && ActorInfo->AvatarActor.IsValid())
+	{
+		if (ABSPlayerCharacter* PlayerCharacter = Cast<ABSPlayerCharacter>(ActorInfo->AvatarActor.Get()))
+		{
+			PlayerCharacter->ApplyStaminaRegenDelay();
+		}
+	}
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+float UGA_PlayerBasicAttack::GetStaminaCost(const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	const ABSPlayerCharacter* PlayerCharacter = ActorInfo ? Cast<ABSPlayerCharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
+
+	// TODO: 캐릭터에 넣고 버프/디버프 배율에 적용
+	const float Multiplier = 1.0f;
+	return BaseStaminaCost * Multiplier;
+}
+
+bool UGA_PlayerBasicAttack::HasEnoughStamina(const FGameplayAbilityActorInfo* ActorInfo) const
+{
+	const UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	const UBSBaseAttributeSet* AttributeSet = ASC ? ASC->GetSet<UBSBaseAttributeSet>() : nullptr;
+	return AttributeSet && AttributeSet->GetCurrentStamina() >= GetStaminaCost(ActorInfo);
+}
+
+void UGA_PlayerBasicAttack::ApplyStaminaCost(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
+{
+	UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	if (!ASC || !StaminaCostEffect)
+	{
+		return;
+	}
+
+	FGameplayEffectSpecHandle CostSpecHandle = MakeOutgoingGameplayEffectSpec(StaminaCostEffect, GetAbilityLevel(Handle, ActorInfo));
+	if (!CostSpecHandle.IsValid())
+	{
+		return;
+	}
+
+	const float Cost = GetStaminaCost(ActorInfo);
+	CostSpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_StaminaCost, -Cost);
+
+	ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, CostSpecHandle);
 }
 
 bool UGA_PlayerBasicAttack::StartAttack(const FGameplayEventData* TriggerEventData)
@@ -24,14 +77,24 @@ bool UGA_PlayerBasicAttack::StartAttack(const FGameplayEventData* TriggerEventDa
 	bSaveCombo = false;
 	bIsComboWindowOpen = false;
 	bComboTransitioning = false;
+	bSpentStamina = false;
 
-	const bool bStarted = Super::StartAttack(TriggerEventData);
-	if (bStarted)
+	if (!HasEnoughStamina(CurrentActorInfo))
 	{
-		RegisterComboEventTasks();
+		return false;
+	}
+	
+	const bool bStarted = Super::StartAttack(TriggerEventData);
+	if (!bStarted)
+	{
+		return false;
 	}
 
-	return bStarted;
+	ApplyStaminaCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
+	bSpentStamina = true;
+
+	RegisterComboEventTasks();
+	return true;
 }
 
 void UGA_PlayerBasicAttack::FaceAttackDirection()
@@ -136,13 +199,28 @@ void UGA_PlayerBasicAttack::OnComboWindowClose(FGameplayEventData Payload)
 
 void UGA_PlayerBasicAttack::PlayNextCombo()
 {
+	if (!HasEnoughStamina(CurrentActorInfo))
+	{
+		bSaveCombo = false;
+		return;
+	}
+	
 	AActor* AvatarActor = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr;
 	IAbilityAnimationInterface* AnimChar = Cast<IAbilityAnimationInterface>(AvatarActor);
 	if (!AnimChar)
 	{
 		return;
 	}
-
+	
+	const FName NextSection = AnimChar->GetNextComboSection();
+	UAnimMontage* NextMontage = AnimChar->GetNextComboMontage();
+	if (!NextMontage && NextSection.IsNone())
+	{
+		return;
+	}
+	
+	ApplyStaminaCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
+	bSpentStamina = true;
 	bIsComboWindowOpen = false;
 	bSaveCombo = false;
 	bComboTransitioning = true;
@@ -157,8 +235,7 @@ void UGA_PlayerBasicAttack::PlayNextCombo()
 		FaceAttackDirection();
 	}
 
-	const FName NextSection = AnimChar->GetNextComboSection();
-	UAnimMontage* NextMontage = AnimChar->GetNextComboMontage();
+
 	if (NextMontage)
 	{
 		if (!NextSection.IsNone() && NextMontage->IsValidSectionName(NextSection))
