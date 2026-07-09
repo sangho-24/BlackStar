@@ -109,6 +109,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	float LockOnUpdateInterval = 0.5f;
 	
+	// ===== 애니메이션 =====
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Setup")
+    TObjectPtr<UAnimMontage> EvadeMontage;
+    	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Setup")
 	TSubclassOf<UGameplayEffect> StaminaRegenEffect;
 	
@@ -146,6 +150,7 @@ protected:
 public:
 	FVector2D GetCurrentMoveInput() const { return CurrentMoveInput; }
 	void ApplyStaminaRegenDelay();
+	UAnimMontage* GetEvadeMontage() const { return EvadeMontage; }
 	// ===== 인터페이스 함수 =====
 	virtual AActor *GetCombatTarget() const override;
 	virtual void SetCombatTarget(AActor *NewTarget) override;
@@ -155,6 +160,7 @@ public:
 	virtual UAnimMontage *GetNextComboMontage() const override;
 	virtual void SetNextComboSection(FName SectionName) override;
 	virtual FName GetNextComboSection() const override;
+	
 
 	FORCEINLINE USpringArmComponent *GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE UCameraComponent *GetFollowCamera() const { return FollowCamera; }

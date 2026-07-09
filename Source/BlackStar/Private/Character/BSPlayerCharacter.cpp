@@ -153,6 +153,15 @@ void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputC
 
 void ABSPlayerCharacter::MoveAction(const FInputActionValue &Value)
 {
+	if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
+	{
+		if (BSASC->HasMatchingGameplayTag(BSGameplayTags::State_Evading))
+		{
+			CurrentMoveInput = FVector2D::ZeroVector;
+			return;
+		}
+	}
+	
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	CurrentMoveInput = MovementVector;
 	if (!Controller)

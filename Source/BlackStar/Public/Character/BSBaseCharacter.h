@@ -63,7 +63,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Setup")
 	float FloatingDamageRandomRadius = 30.0f;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Death")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Setup")
 	TObjectPtr<UAnimMontage> DeathMontage;
 	
 	bool bIsDead = false;

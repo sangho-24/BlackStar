@@ -5,6 +5,9 @@
 #include "Character/BSPlayerCharacter.h"
 #include "GAS/BSBaseAttributeSet.h"
 #include "Utility/BSGameplayTags.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "GameFramework/RootMotionSource.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
 UGA_PlayerEvade::UGA_PlayerEvade()
@@ -39,28 +42,69 @@ void UGA_PlayerEvade::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	bSpentStamina = false;
+	EvadeRootMotionSourceID = 0;
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	
-	ACharacter* Character = ActorInfo ? Cast<ACharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
-	if (!Character || !HasEnoughStamina(ActorInfo))
+	ABSPlayerCharacter* PlayerCharacter = ActorInfo ? Cast<ABSPlayerCharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
+	if (!PlayerCharacter || !HasEnoughStamina(ActorInfo))
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
+	
+	UAnimMontage* EvadeMontage = PlayerCharacter->GetEvadeMontage();
+	if (!EvadeMontage)
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
+	const FVector EvadeMoveDirection = GetEvadeMoveDirection(PlayerCharacter);
+	if (EvadeMoveDirection.IsNearlyZero())
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
+	const EPlayerEvadeDirection AnimDirection = GetEvadeAnimDirection(PlayerCharacter);
+	const FName SectionName = GetEvadeSectionName(AnimDirection);
 	
 	ApplyStaminaCost(Handle, ActorInfo, ActivationInfo);
 	bSpentStamina = true;
-	
-	const FVector EvadeDirection = GetEvadeDirection(Character);
-	if (EvadeDirection.IsNearlyZero())
+
+	FaceEvadeDirectionIfNeeded(PlayerCharacter, EvadeMoveDirection);
+	StartEvadeMovement(PlayerCharacter, EvadeMoveDirection);
+
+	const float MontagePlayRate = GetMontagePlayRateForDuration(EvadeMontage, SectionName);
+	// 몽타주 재생
+	UAbilityTask_PlayMontageAndWait* MontageTask =
+		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+			this,
+			NAME_None,
+			EvadeMontage,
+			MontagePlayRate,
+			SectionName,
+			true);
+
+	if (MontageTask)
 	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
+		MontageTask->OnCompleted.AddDynamic(this, &UGA_PlayerEvade::OnMontageCompleted);
+		MontageTask->OnBlendOut.AddDynamic(this, &UGA_PlayerEvade::OnMontageCompleted);
+		MontageTask->OnInterrupted.AddDynamic(this, &UGA_PlayerEvade::OnMontageInterrupted);
+		MontageTask->OnCancelled.AddDynamic(this, &UGA_PlayerEvade::OnMontageInterrupted);
+		MontageTask->ReadyForActivation();
 	}
-
-	Character->LaunchCharacter(EvadeDirection * EvadeStrength, true, true);
-
-	if (UWorld* World = Character->GetWorld())
+	
+		UE_LOG(LogTemp, Warning, TEXT("Evade Section: %s, Index: %d, PlayRate: %.2f"),
+    		*SectionName.ToString(),
+    		EvadeMontage->GetSectionIndex(SectionName),
+    		MontagePlayRate);
+    	// if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+    	// {
+    	// 	ActorInfo->AbilitySystemComponent->CurrentMontageJumpToSection(SectionName);
+    	// }
+    	
+	if (UWorld* World = PlayerCharacter->GetWorld())
 	{
 		World->GetTimerManager().SetTimer(
 			EvadeTimerHandle,
@@ -74,45 +118,206 @@ void UGA_PlayerEvade::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 void UGA_PlayerEvade::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	if (ActorInfo && ActorInfo->AvatarActor.IsValid())
+	ABSPlayerCharacter* PlayerCharacter = ActorInfo ? Cast<ABSPlayerCharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
+
+	if (PlayerCharacter)
 	{
-		if (UWorld* World = ActorInfo->AvatarActor->GetWorld())
+		if (UWorld* World = PlayerCharacter->GetWorld())
 		{
 			World->GetTimerManager().ClearTimer(EvadeTimerHandle);
 		}
-		
-		if (ABSPlayerCharacter* PlayerCharacter = Cast<ABSPlayerCharacter>(ActorInfo->AvatarActor.Get()))
+
+		StopEvadeMovement(PlayerCharacter);
+
+		if (bSpentStamina)
 		{
-			if (bSpentStamina)
-			{
 			PlayerCharacter->ApplyStaminaRegenDelay();
-			}
 		}
 	}
 
+	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		UAnimMontage* PlayingMontage = ActorInfo->AbilitySystemComponent->GetCurrentMontage();
+		UAnimMontage* EvadeMontage = PlayerCharacter ? PlayerCharacter->GetEvadeMontage() : nullptr;
+
+		if (PlayingMontage && PlayingMontage == EvadeMontage)
+		{
+			ActorInfo->AbilitySystemComponent->CurrentMontageStop(EvadeMontageBlendOutTime);
+		}
+	}
+	
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 // GetCurrentMoveInput이 플레이어 캐릭터에만 있슴!
-FVector UGA_PlayerEvade::GetEvadeDirection(ACharacter* Character) const
+FVector UGA_PlayerEvade::GetEvadeMoveDirection(const ABSPlayerCharacter* PlayerCharacter) const
 {
-	const ABSPlayerCharacter* PlayerCharacter = Cast<ABSPlayerCharacter>(Character);
-	const FVector2D MoveInput = PlayerCharacter ? PlayerCharacter->GetCurrentMoveInput() : FVector2D::ZeroVector;
+	if (!PlayerCharacter)
+	{
+		return FVector::ZeroVector;
+	}
+
+	const FVector2D MoveInput = PlayerCharacter->GetCurrentMoveInput();
 
 	if (MoveInput.IsNearlyZero())
 	{
-		return -Character->GetActorForwardVector();
+		return -PlayerCharacter->GetActorForwardVector();
 	}
 
-	const FRotator ControlRotation = Character->GetController()
-		? Character->GetController()->GetControlRotation()
-		: Character->GetActorRotation();
+	const bool bLockedOn = PlayerCharacter->GetCombatTarget() != nullptr;
+
+	if (bLockedOn)
+	{
+		const FVector Forward = PlayerCharacter->GetActorForwardVector();
+		const FVector Right = PlayerCharacter->GetActorRightVector();
+		return (Forward * MoveInput.Y + Right * MoveInput.X).GetSafeNormal2D();
+	}
+
+	const FRotator ControlRotation = PlayerCharacter->GetController()
+		? PlayerCharacter->GetController()->GetControlRotation() : PlayerCharacter->GetActorRotation();
 
 	const FRotator YawRotation(0.0f, ControlRotation.Yaw, 0.0f);
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	const FVector Forward = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector Right = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	return (ForwardDirection * MoveInput.Y + RightDirection * MoveInput.X).GetSafeNormal2D();
+	return (Forward * MoveInput.Y + Right * MoveInput.X).GetSafeNormal2D();
+}
+
+EPlayerEvadeDirection UGA_PlayerEvade::GetEvadeAnimDirection(const class ABSPlayerCharacter* PlayerCharacter) const
+{
+	if (!PlayerCharacter)
+	{
+		return EPlayerEvadeDirection::Back;
+	}
+
+	const FVector2D MoveInput = PlayerCharacter->GetCurrentMoveInput();
+
+	if (MoveInput.IsNearlyZero())
+	{
+		return EPlayerEvadeDirection::Back;
+	}
+
+	const bool bLockedOn = PlayerCharacter->GetCombatTarget() != nullptr;
+
+	if (!bLockedOn)
+	{
+		return EPlayerEvadeDirection::Front;
+	}
+
+	if (FMath::Abs(MoveInput.X) > FMath::Abs(MoveInput.Y))
+	{
+		return MoveInput.X > 0.0f
+			? EPlayerEvadeDirection::Right : EPlayerEvadeDirection::Left;
+	}
+
+	return MoveInput.Y > 0.0f
+		? EPlayerEvadeDirection::Front : EPlayerEvadeDirection::Back;
+}
+
+FName UGA_PlayerEvade::GetEvadeSectionName(EPlayerEvadeDirection Direction) const
+{
+	switch (Direction)
+	{
+	case EPlayerEvadeDirection::Front:
+		return TEXT("Front");
+	case EPlayerEvadeDirection::Back:
+		return TEXT("Back");
+	case EPlayerEvadeDirection::Left:
+		return TEXT("Left");
+	case EPlayerEvadeDirection::Right:
+		return TEXT("Right");
+	default:
+		return TEXT("Back");
+	}
+}
+
+float UGA_PlayerEvade::GetMontagePlayRateForDuration(UAnimMontage* Montage, FName SectionName) const
+{
+	if (!Montage || EvadeDuration <= KINDA_SMALL_NUMBER)
+	{
+		return 1.0f;
+	}
+
+	const int32 SectionIndex = Montage->GetSectionIndex(SectionName);
+	if (SectionIndex == INDEX_NONE)
+	{
+		return 1.0f;
+	}
+
+	const float SectionLength = Montage->GetSectionLength(SectionIndex);
+	if (SectionLength <= KINDA_SMALL_NUMBER)
+	{
+		return 1.0f;
+	}
+
+	return SectionLength / EvadeDuration;
+}
+
+void UGA_PlayerEvade::FaceEvadeDirectionIfNeeded(class ABSPlayerCharacter* PlayerCharacter,const FVector& Direction) const
+{
+	if (!PlayerCharacter || PlayerCharacter->GetCombatTarget())
+	{
+		return;
+	}
+
+	if (PlayerCharacter->GetCurrentMoveInput().IsNearlyZero())
+	{
+		return;
+	}
+	
+	if (!Direction.IsNearlyZero())
+	{
+		PlayerCharacter->SetActorRotation(Direction.Rotation());
+	}
+}
+
+void UGA_PlayerEvade::StartEvadeMovement(ACharacter* Character, const FVector& Direction)
+{
+	if (!Character)
+	{
+		return;
+	}
+
+	UCharacterMovementComponent* MovementComponent = Character->GetCharacterMovement();
+	if (!MovementComponent)
+	{
+		return;
+	}
+
+	const FVector MoveDirection = Direction.GetSafeNormal2D();
+	const FVector StartLocation = Character->GetActorLocation();
+	const FVector TargetLocation = StartLocation + MoveDirection * EvadeDistance;
+
+	TSharedPtr<FRootMotionSource_MoveToDynamicForce> MoveSource = MakeShared<FRootMotionSource_MoveToDynamicForce>();
+	MoveSource->InstanceName = TEXT("PlayerEvade");
+	MoveSource->AccumulateMode = ERootMotionAccumulateMode::Override;
+	MoveSource->Priority = 500;
+	MoveSource->Duration = EvadeDuration;
+	MoveSource->StartLocation = StartLocation;
+	MoveSource->TargetLocation = TargetLocation;
+	MoveSource->bRestrictSpeedToExpected = true;
+
+	if (EvadeMovementCurve)
+	{
+		MoveSource->TimeMappingCurve = EvadeMovementCurve;
+	}
+
+	EvadeRootMotionSourceID = MovementComponent->ApplyRootMotionSource(MoveSource);
+}
+
+void UGA_PlayerEvade::StopEvadeMovement(ACharacter* Character)
+{
+	if (!Character || EvadeRootMotionSourceID == 0)
+	{
+		return;
+	}
+
+	if (UCharacterMovementComponent* MovementComponent = Character->GetCharacterMovement())
+	{
+		MovementComponent->RemoveRootMotionSourceByID(EvadeRootMotionSourceID);
+	}
+
+	EvadeRootMotionSourceID = 0;
 }
 
 float UGA_PlayerEvade::GetStaminaCost(const FGameplayAbilityActorInfo* ActorInfo) const
@@ -159,10 +364,14 @@ void UGA_PlayerEvade::FinishEvade()
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
-// void UGA_PlayerEvade::OnMontageCompleted()
-// {
-// }
-//
-// void UGA_PlayerEvade::OnMontageCancelled()
-// {
-// }
+void UGA_PlayerEvade::OnMontageCompleted()
+{
+
+}
+
+void UGA_PlayerEvade::OnMontageInterrupted()
+{
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+}
+
+

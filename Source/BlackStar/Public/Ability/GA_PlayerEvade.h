@@ -6,9 +6,15 @@
 #include "Abilities/GameplayAbility.h"
 #include "GA_PlayerEvade.generated.h"
 
-/**
- * 
- */
+UENUM()
+enum class EPlayerEvadeDirection : uint8
+{
+	Front,
+	Back,
+	Left,
+	Right
+};
+
 UCLASS()
 class BLACKSTAR_API UGA_PlayerEvade : public UGameplayAbility
 {
@@ -28,15 +34,21 @@ protected:
 	float BaseStaminaCost = 20.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Movement")
-	float EvadeStrength = 1200.0f;
+	float EvadeDistance = 350.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Movement")
 	float EvadeDuration = 0.25f;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Animation")
+	float EvadeMontageBlendOutTime = 0.08f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Movement|Setup")
+	TObjectPtr<UCurveFloat> EvadeMovementCurve;
 	
 private:
 	bool bSpentStamina = false;
 	FTimerHandle EvadeTimerHandle;
+	uint16 EvadeRootMotionSourceID = 0;
 	
 protected:
 	virtual bool CanActivateAbility(
@@ -59,7 +71,17 @@ protected:
 		bool bReplicateEndAbility,
 		bool bWasCancelled) override;
 	
-	FVector GetEvadeDirection(ACharacter* Character) const;
+	FVector GetEvadeMoveDirection(const class ABSPlayerCharacter* PlayerCharacter) const;
+	EPlayerEvadeDirection GetEvadeAnimDirection(const class ABSPlayerCharacter* PlayerCharacter) const;
+	FName GetEvadeSectionName(EPlayerEvadeDirection Direction) const;
+	float GetMontagePlayRateForDuration(UAnimMontage* Montage, FName SectionName) const;
+	
+	void FaceEvadeDirectionIfNeeded(class ABSPlayerCharacter* PlayerCharacter, const FVector& Direction) const;
+	
+	// FVector GetEvadeDirection(ACharacter* Character) const;
+	void StartEvadeMovement(ACharacter* Character, const FVector& Direction);
+	void StopEvadeMovement(ACharacter* Character);
+	
 	float GetStaminaCost(const FGameplayAbilityActorInfo* ActorInfo) const;
 	bool HasEnoughStamina(const FGameplayAbilityActorInfo* ActorInfo) const;
 	void ApplyStaminaCost(
@@ -68,9 +90,10 @@ protected:
 		const FGameplayAbilityActivationInfo ActivationInfo) const;
 	void FinishEvade();
 	
-	// UFUNCTION()
-	// void OnMontageCompleted();
-	//
-	// UFUNCTION()
-	// void OnMontageCancelled();
+	UFUNCTION()
+	void OnMontageCompleted();
+
+	UFUNCTION()
+	void OnMontageInterrupted();
+	
 };
