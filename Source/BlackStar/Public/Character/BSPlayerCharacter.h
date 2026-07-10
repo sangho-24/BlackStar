@@ -152,6 +152,7 @@ public:
 	void ApplyStaminaRegenDelay();
 	UAnimMontage* GetEvadeMontage() const { return EvadeMontage; }
 	// ===== 인터페이스 함수 =====
+	UFUNCTION(BlueprintPure)
 	virtual AActor *GetCombatTarget() const override;
 	virtual void SetCombatTarget(AActor *NewTarget) override;
 	virtual void ClearCombatTarget() override;

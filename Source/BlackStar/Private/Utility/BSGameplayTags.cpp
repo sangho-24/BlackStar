@@ -26,6 +26,7 @@ namespace BSGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(State_Evading, "State.Evading");
 	UE_DEFINE_GAMEPLAY_TAG(State_Dashing, "State.Dashing");
 	UE_DEFINE_GAMEPLAY_TAG(State_StaminaRegenDelay, "State.StaminaRegenDelay");
+	UE_DEFINE_GAMEPLAY_TAG(State_LockOn, "State.LockOn");
 	
 
 	UE_DEFINE_GAMEPLAY_TAG(Data_Damage, "Data.Damage");

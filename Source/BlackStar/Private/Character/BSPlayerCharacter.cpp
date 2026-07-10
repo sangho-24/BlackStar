@@ -501,12 +501,33 @@ void ABSPlayerCharacter::OnDeathFinished(AActor *Killer)
 void ABSPlayerCharacter::SetCombatTarget(AActor *NewTarget)
 {
 	LockOnTarget = Cast<ABSBaseCharacter>(NewTarget);
+	if (LockOnTarget)
+	{
+		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		{
+		Movement->bOrientRotationToMovement = false;
+		Movement->bUseControllerDesiredRotation = true;
+		}
+		if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
+		{
+			BSASC->AddLooseGameplayTag(BSGameplayTags::State_LockOn);
+		}
+	}
 }
 
 void ABSPlayerCharacter::ClearCombatTarget()
 {
 	LockOnTarget = nullptr;
 	StopLockOnUpdateTimer();
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->bUseControllerDesiredRotation = false;
+		Movement->bOrientRotationToMovement = true;
+	}
+	if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
+	{
+		BSASC->RemoveLooseGameplayTag(BSGameplayTags::State_LockOn);
+	}
 }
 
 void ABSPlayerCharacter::ApplyStaminaRegenDelay()
