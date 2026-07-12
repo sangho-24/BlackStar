@@ -77,14 +77,13 @@ void UGA_PlayerEvade::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 
 	const float MontagePlayRate = GetMontagePlayRateForDuration(EvadeMontage, SectionName);
 	// 몽타주 재생
-	UAbilityTask_PlayMontageAndWait* MontageTask =
-		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 			this,
 			NAME_None,
 			EvadeMontage,
 			MontagePlayRate,
 			SectionName,
-			true);
+			false);
 
 	if (MontageTask)
 	{
@@ -104,13 +103,15 @@ void UGA_PlayerEvade::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
     	// 	ActorInfo->AbilitySystemComponent->CurrentMontageJumpToSection(SectionName);
     	// }
     	
+	const float AbilityEndTime = EvadeDuration * EvadeControlLockRatio;
+	
 	if (UWorld* World = PlayerCharacter->GetWorld())
 	{
 		World->GetTimerManager().SetTimer(
 			EvadeTimerHandle,
 			this,
 			&UGA_PlayerEvade::FinishEvade,
-			EvadeDuration,
+			AbilityEndTime,
 			false);
 	}
 }
@@ -119,7 +120,7 @@ void UGA_PlayerEvade::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	ABSPlayerCharacter* PlayerCharacter = ActorInfo ? Cast<ABSPlayerCharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
-
+	float BlendOutTime = 0.08f;
 	if (PlayerCharacter)
 	{
 		if (UWorld* World = PlayerCharacter->GetWorld())
@@ -128,6 +129,7 @@ void UGA_PlayerEvade::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 
 		StopEvadeMovement(PlayerCharacter);
+		BlendOutTime = PlayerCharacter->GetEvadeMontageBlendOutTime();
 
 		if (bSpentStamina)
 		{
@@ -135,14 +137,14 @@ void UGA_PlayerEvade::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 	}
 
-	if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	if (bWasCancelled && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
 	{
 		UAnimMontage* PlayingMontage = ActorInfo->AbilitySystemComponent->GetCurrentMontage();
 		UAnimMontage* EvadeMontage = PlayerCharacter ? PlayerCharacter->GetEvadeMontage() : nullptr;
 
 		if (PlayingMontage && PlayingMontage == EvadeMontage)
 		{
-			ActorInfo->AbilitySystemComponent->CurrentMontageStop(EvadeMontageBlendOutTime);
+			ActorInfo->AbilitySystemComponent->CurrentMontageStop(BlendOutTime);
 		}
 	}
 	
@@ -296,6 +298,12 @@ void UGA_PlayerEvade::StartEvadeMovement(ACharacter* Character, const FVector& D
 	MoveSource->StartLocation = StartLocation;
 	MoveSource->TargetLocation = TargetLocation;
 	MoveSource->bRestrictSpeedToExpected = true;
+	
+	const bool bIsInAir = MovementComponent->IsFalling();
+	if (!bIsInAir)
+	{
+		MoveSource->Settings.SetFlag(ERootMotionSourceSettingsFlags::IgnoreZAccumulate);
+	}
 
 	if (EvadeMovementCurve)
 	{

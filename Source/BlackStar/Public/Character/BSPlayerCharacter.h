@@ -118,6 +118,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Setup")
 	TSubclassOf<UGameplayEffect> StaminaRegenDelayEffect;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Animation")
+	float EvadeMontageBlendOutTime = 0.08f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -144,6 +147,8 @@ protected:
 	void StartLockOnUpdateTimer();
 	void StopLockOnUpdateTimer();
 
+	void StopEvadeMontageTail();
+	
 	virtual void OnDeathStarted(AActor *Killer) override;
 	virtual void OnDeathFinished(AActor *Killer) override;
 
@@ -151,6 +156,7 @@ public:
 	FVector2D GetCurrentMoveInput() const { return CurrentMoveInput; }
 	void ApplyStaminaRegenDelay();
 	UAnimMontage* GetEvadeMontage() const { return EvadeMontage; }
+	float GetEvadeMontageBlendOutTime() const { return EvadeMontageBlendOutTime; }
 	// ===== 인터페이스 함수 =====
 	UFUNCTION(BlueprintPure)
 	virtual AActor *GetCombatTarget() const override;

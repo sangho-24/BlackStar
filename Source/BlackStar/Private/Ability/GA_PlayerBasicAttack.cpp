@@ -19,6 +19,7 @@ UGA_PlayerBasicAttack::UGA_PlayerBasicAttack()
 	SetAssetTags(AssetTags);
 	
 	ActivationBlockedTags.AddTag(BSGameplayTags::State_Dead);
+	ActivationBlockedTags.AddTag(BSGameplayTags::State_Evading);
 }
 
 void UGA_PlayerBasicAttack::EndAbility(const FGameplayAbilitySpecHandle Handle,

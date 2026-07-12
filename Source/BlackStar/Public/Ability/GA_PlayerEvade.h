@@ -39,8 +39,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Movement")
 	float EvadeDuration = 0.25f;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Animation")
-	float EvadeMontageBlendOutTime = 0.08f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Movement", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float EvadeControlLockRatio = 0.75f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Movement|Setup")
 	TObjectPtr<UCurveFloat> EvadeMovementCurve;

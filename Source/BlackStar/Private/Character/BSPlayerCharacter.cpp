@@ -12,6 +12,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
 #include "GameplayEffect.h"
+#include "Animation/AnimInstance.h"
 
 ABSPlayerCharacter::ABSPlayerCharacter()
 {
@@ -164,11 +165,17 @@ void ABSPlayerCharacter::MoveAction(const FInputActionValue &Value)
 	
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	CurrentMoveInput = MovementVector;
-	if (!Controller)
+	if (MovementVector.IsNearlyZero())
 	{
 		return;
 	}
 
+	StopEvadeMontageTail();
+	
+	if (!Controller)
+	{
+		return;
+	}
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0.0f, Rotation.Yaw, 0.0f);
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
@@ -204,6 +211,15 @@ void ABSPlayerCharacter::ZoomAction(const FInputActionValue &Value)
 
 void ABSPlayerCharacter::JumpAction()
 {
+	if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
+	{
+		if (BSASC->HasMatchingGameplayTag(BSGameplayTags::State_Evading))
+		{
+			return;
+		}
+	}
+
+	StopEvadeMontageTail();
 	Jump();
 }
 
@@ -485,6 +501,21 @@ void ABSPlayerCharacter::StopLockOnUpdateTimer()
 	}
 
 	World->GetTimerManager().ClearTimer(LockOnUpdateTimerHandle);
+}
+
+void ABSPlayerCharacter::StopEvadeMontageTail()
+{
+	if (!EvadeMontage)
+	{
+		return;
+	}
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (AnimInstance && AnimInstance->Montage_IsPlaying(EvadeMontage))
+	{
+		AnimInstance->Montage_Stop(
+			EvadeMontageBlendOutTime,
+			EvadeMontage);
+	}
 }
 
 void ABSPlayerCharacter::OnDeathStarted(AActor *Killer)
