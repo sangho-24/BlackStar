@@ -3,6 +3,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Component/BSWeaponComponent.h"
 #include "EnhancedInputComponent.h"
 #include "GAS/BSAbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -43,6 +44,8 @@ ABSPlayerCharacter::ABSPlayerCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+	
+	WeaponComponent =CreateDefaultSubobject<UBSWeaponComponent>(TEXT("WeaponComponent"));
 }
 
 void ABSPlayerCharacter::BeginPlay()

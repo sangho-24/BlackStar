@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "Ability/BSAbilityTypes.h"
+#include "Data/BSWeaponMotionSet.h"
 #include "Interface/IAbilityAnimationInterface.h"
 #include "Interface/ICombatInterface.h"
 #include "BSBaseCharacter.generated.h"
@@ -15,6 +16,7 @@ class UBSAbilitySet;
 class UGameplayAbility;
 class AFloatingDamageActor;
 class UBSHitReactionComponent;
+class UBSWeaponComponent;
 
 
 UCLASS()
@@ -66,6 +68,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Setup")
 	TObjectPtr<UAnimMontage> DeathMontage;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Movement|Setup")
+	FBSWeaponMovementSet DefaultMovementSet;
+	
 	bool bIsDead = false;
 	bool bDeathFinished = false;
 	TWeakObjectPtr<AActor> DeathKiller;
@@ -89,6 +94,12 @@ public:
 	FORCEINLINE UBSAbilitySystemComponent* GetBSAbilitySystemComponent() const { return AbilitySystemComponent; }
 	FORCEINLINE UBSBaseAttributeSet* GetAttributeSet() const { return AttributeSet; }
 
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	UBSWeaponComponent* GetWeaponComponent() const;
+	
+	UFUNCTION(BlueprintPure, Category = "Animation|Movement")
+	FBSWeaponMovementSet GetCurrentMovementSet() const;
+	
 	// 인터페이스
 	virtual FAbilitySkillData GetSkillDataForAbility(FGameplayTag AbilityTag) override;
 	virtual void SetProjectileData(const FProjectileData& Data) override;

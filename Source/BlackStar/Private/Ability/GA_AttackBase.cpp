@@ -7,6 +7,8 @@
 #include "Actor/BSProjectile.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Component/BSWeaponComponent.h"
+#include "Character/BSBaseCharacter.h"
 #include "GAS/BSBaseAttributeSet.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -144,30 +146,49 @@ void UGA_AttackBase::DoMeleeTrace()
 	{
 		return;
 	}
-
 	AActor *Avatar = CurrentActorInfo->AvatarActor.Get();
 	if (!Avatar)
 	{
 		return;
 	}
-	USkeletalMeshComponent *Mesh = Avatar->FindComponentByClass<USkeletalMeshComponent>();
-	UWorld *World = Avatar->GetWorld();
-	if (!Mesh || !World)
+	UWorld* World = Avatar->GetWorld();
+	if (!World)
 	{
 		return;
 	}
-
-	FVector TraceStart = Avatar->GetActorLocation();
-	FVector TraceEnd = Avatar->GetActorLocation();
-
-	if (!ActiveTraceData.StartSocketName.IsNone() && Mesh->DoesSocketExist(ActiveTraceData.StartSocketName))
+	
+	// 사용할 메시 결정(무기 or 몸)
+	UMeshComponent* TraceMesh = nullptr;
+	const ABSBaseCharacter* BSCharacter = Cast<ABSBaseCharacter>(Avatar);
+	if (!BSCharacter)
 	{
-		TraceStart = Mesh->GetSocketLocation(ActiveTraceData.StartSocketName);
+		return;
 	}
-	if (!ActiveTraceData.EndSocketName.IsNone() && Mesh->DoesSocketExist(ActiveTraceData.EndSocketName))
+	if (const UBSWeaponComponent* WeaponComponent = BSCharacter->GetWeaponComponent())
 	{
-		TraceEnd = Mesh->GetSocketLocation(ActiveTraceData.EndSocketName);
+		TraceMesh = WeaponComponent->GetActiveWeaponMeshComponent();
 	}
+	if (!TraceMesh)
+	{
+		TraceMesh = BSCharacter->GetMesh();
+	}
+
+	const FName StartSocketName = ActiveTraceData.StartSocketName;
+	const FName EndSocketName = ActiveTraceData.EndSocketName;
+	
+	if (StartSocketName.IsNone() || EndSocketName.IsNone())
+	{
+		return;
+	}
+	
+	if (!TraceMesh->DoesSocketExist(StartSocketName) || !TraceMesh->DoesSocketExist(EndSocketName))
+	{
+		return;
+	}
+	
+	FVector TraceStart = TraceMesh->GetSocketLocation(StartSocketName);
+	FVector TraceEnd = TraceMesh->GetSocketLocation(EndSocketName);
+	
 	if (ActiveTraceData.ExtraLength > 0.0f)
 	{
 		FVector Direction = TraceEnd - TraceStart;
@@ -231,6 +252,7 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
 	ContextHandle.AddHitResult(HitResult);
 	ContextHandle.AddInstigator(CurrentActorInfo->AvatarActor.Get(), CurrentActorInfo->AvatarActor.Get());
+	
 	// ===== 데미지 적용
 	FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(MeleeDamageEffect, 1.0f, ContextHandle);
 	if (!SpecHandle.IsValid())
@@ -239,6 +261,18 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 	}
 
 	float FinalDamage = MeleeBaseDamage;
+
+	if (const ABSBaseCharacter* BSCharacter = Cast<ABSBaseCharacter>(CurrentActorInfo->AvatarActor.Get()))
+	{
+		if (const UBSWeaponComponent* WeaponComponent = BSCharacter->GetWeaponComponent())
+		{
+			if (WeaponComponent -> GetEquippedWeapon())
+			{
+				FinalDamage += WeaponComponent -> GetBaseDamage();
+			}
+		}
+	}
+	
 	if (const UBSBaseAttributeSet *SourceAttributeSet = SourceASC->GetSet<UBSBaseAttributeSet>())
 	{
 		FinalDamage *= 1.0f + SourceAttributeSet->GetAttackPower() / 100.0f;

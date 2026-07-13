@@ -10,6 +10,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UAnimMontage;
 class UGameplayEffect;
+class UBSWeaponComponent;
 
 UCLASS()
 class BLACKSTAR_API ABSPlayerCharacter : public ABSBaseCharacter
@@ -121,6 +122,10 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Evade|Animation")
 	float EvadeMontageBlendOutTime = 0.08f;
+	
+	// ===== 장비 =====
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UBSWeaponComponent> WeaponComponent;
 
 protected:
 	virtual void BeginPlay() override;

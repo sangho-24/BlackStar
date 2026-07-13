@@ -11,6 +11,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Utility/BSGameplayTags.h"
 #include "Component/BSHitReactionComponent.h"
+#include "Component/BSWeaponComponent.h"
+#include "Data/BSWeaponMotionSet.h"
 
 ABSBaseCharacter::ABSBaseCharacter()
 {
@@ -115,13 +117,40 @@ UAbilitySystemComponent* ABSBaseCharacter::GetAbilitySystemComponent() const
 	return AbilitySystemComponent.Get();
 }
 
+UBSWeaponComponent* ABSBaseCharacter::GetWeaponComponent() const
+{
+	return FindComponentByClass<UBSWeaponComponent>();
+}
+
+FBSWeaponMovementSet ABSBaseCharacter::GetCurrentMovementSet() const
+{
+	if (const UBSWeaponComponent* WeaponComponent = GetWeaponComponent())
+	{
+		if (const UBSWeaponMotionSet* MotionSet = WeaponComponent->GetMotionSet())
+		{
+			return MotionSet->MovementSet;
+		}
+	}
+	return DefaultMovementSet;
+}
+
 FAbilitySkillData ABSBaseCharacter::GetSkillDataForAbility(FGameplayTag AbilityTag)
 {
-	if (const FAbilitySkillData* FoundData = AbilitySkillDataMap.Find(AbilityTag))
+	if (const UBSWeaponComponent* WeaponComponent = GetWeaponComponent())
 	{
-		return *FoundData;
+		if (const UBSWeaponMotionSet* MotionSet = WeaponComponent->GetMotionSet())
+		{
+			if (const FAbilitySkillData* WeaponSkillData = MotionSet->SkillDataMap.Find(AbilityTag))
+			{
+				return *WeaponSkillData;
+			}
+		}
 	}
-
+	// 무기가 없거나 무기 전용 모션이 없으면 캐릭터 기본값
+	if (const FAbilitySkillData* CharacterSkillData = AbilitySkillDataMap.Find(AbilityTag))
+	{
+		return *CharacterSkillData;
+	}
 	return FAbilitySkillData();
 }
 
