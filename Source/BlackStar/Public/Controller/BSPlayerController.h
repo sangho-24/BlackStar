@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayEffectTypes.h"
+#include "Utility/BSTeam.h"
+#include "GenericTeamAgentInterface.h"
 #include "BSPlayerController.generated.h"
 
 class UHUDWidget;
@@ -17,7 +19,7 @@ class UInputMappingContext;
  * 
  */
 UCLASS()
-class BLACKSTAR_API ABSPlayerController : public APlayerController
+class BLACKSTAR_API ABSPlayerController : public APlayerController, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 	
@@ -40,16 +42,20 @@ private:
 	TObjectPtr<UAbilitySystemComponent> CachedASC;
 	
 	bool bIsHitStopActive  = false;
-	
-public:
-	void SetIsHitStopActive(bool isActive){bIsHitStopActive = isActive;}
-	bool GetIsHitStopActive() const {return bIsHitStopActive;}
+	FGenericTeamId TeamId = FGenericTeamId(BSTeam::Player);
 	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void OnUnPossess() override;
+	
+public:
+	void SetIsHitStopActive(bool isActive){bIsHitStopActive = isActive;}
+	bool GetIsHitStopActive() const {return bIsHitStopActive;}
+	
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	virtual FGenericTeamId GetGenericTeamId() const override;
 	
 private:
 	void BindHUDDelegates();

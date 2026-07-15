@@ -87,6 +87,13 @@ void ABSEnemyCharacter::ClearCombatTarget()
 void ABSEnemyCharacter::SetLastKnownTargetLocation(const FVector& Location)
 {
 	LastKnownTargetLocation = Location;
+	bHasLastKnownTargetLocation = true;
+}
+
+void ABSEnemyCharacter::ClearLastKnownTargetLocation()
+{
+	LastKnownTargetLocation = FVector::ZeroVector;
+	bHasLastKnownTargetLocation = false;
 }
 
 AActor* ABSEnemyCharacter::GetCombatTarget() const

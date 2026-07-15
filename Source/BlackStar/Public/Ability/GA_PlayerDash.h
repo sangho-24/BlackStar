@@ -31,7 +31,7 @@ protected:
 	float DrainTickRate = 0.1f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash|Movement", meta = (ClampMin = "0.0"))
-	float DashWalkSpeed = 1000.0f;
+	float DashWalkSpeed = 600.0f;
 
 	FTimerHandle DrainTimerHandle;
 	float OriginalWalkSpeed = 0.0f;

@@ -101,3 +101,62 @@ FText FSTCondition_IsCombatTargetInRange::GetDescription(
 	return FText::FromString(TEXT("타겟이 범위 안에 있음?"));
 }
 #endif
+
+// ===== 개편 =====
+// 타겟이 있는가?
+bool FSTCondition_HasCombatTarget::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+
+	if (!EnemyCharacter || EnemyCharacter->IsDead())
+	{
+		return false;
+	}
+
+	const AActor* CombatTarget = EnemyCharacter->GetCombatTarget();
+
+	if (!IsValid(CombatTarget))
+	{
+		return false;
+	}
+
+	const ICombatInterface* CombatInterface = Cast<ICombatInterface>(CombatTarget);
+	if (CombatInterface && CombatInterface->IsDead())
+	{
+		return false;
+	}
+	
+	return true;
+}
+
+// ===== 마지막 위치 아는지? =====
+bool FSTCondition_HasLastKnownTargetLocation::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+
+	return EnemyCharacter 
+		&& !EnemyCharacter->IsDead() 
+		&& EnemyCharacter->HasLastKnownTargetLocation();
+}
+
+// ===== 거리가 멀어졌어요 =====
+bool FSTCondition_IsCombatTargetFartherThan::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter || EnemyCharacter->IsDead())
+	{
+		return false;
+	}
+
+	const AActor* CombatTarget = EnemyCharacter->GetCombatTarget();
+	if (!IsValid(CombatTarget))
+	{
+		return false;
+	}
+
+	const float DistanceSquared = FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), CombatTarget->GetActorLocation());
+	return DistanceSquared > FMath::Square(InstanceData.Distance);
+}

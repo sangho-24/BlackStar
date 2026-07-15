@@ -9,6 +9,7 @@
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // ===== 어빌리티 발동!! =====
 FSTTask_ActivateAbilityByTag::FSTTask_ActivateAbilityByTag()
@@ -157,12 +158,22 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::EnterState(
 	FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-
 	if (!InstanceData.EnemyCharacter)
 	{
 		return EStateTreeRunStatus::Failed;
 	}
 
+	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	if (UCharacterMovementComponent* Movement = EnemyCharacter->GetCharacterMovement())
+	{
+		Movement->MaxWalkSpeed = InstanceData.MovementSpeed;
+	}
+	
+	
 	InstanceData.LastRequestedTarget.Reset();
 	InstanceData.LastRequestedMoveLocation = FVector::ZeroVector;
 	InstanceData.bLastRequestWasActor = false;
@@ -239,14 +250,15 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstance
 		return RequestMoveToActor(InstanceData, CombatTarget);
 	}
 
-	const FVector GoalLocation = EnemyCharacter->GetLastKnownTargetLocation();
-	if (GoalLocation.IsNearlyZero())
+	if (!EnemyCharacter->HasLastKnownTargetLocation())
 	{
 		return EStateTreeRunStatus::Failed;
 	}
+	const FVector GoalLocation = EnemyCharacter->GetLastKnownTargetLocation();
 
 	if (HasReachedLocation(InstanceData, GoalLocation))
 	{
+		EnemyCharacter->ClearLastKnownTargetLocation();
 		return EStateTreeRunStatus::Succeeded;
 	}
 
@@ -332,14 +344,14 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation
 
 	if (MoveResult == EPathFollowingRequestResult::AlreadyAtGoal)
 	{
+		EnemyCharacter->ClearLastKnownTargetLocation();
 		return EStateTreeRunStatus::Succeeded;
 	}
 
 	return EStateTreeRunStatus::Running;
 }
 
-bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(
-	const FInstanceDataType& InstanceData, const FVector& GoalLocation)
+bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(const FInstanceDataType& InstanceData, const FVector& GoalLocation)
 {
 	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter)

@@ -111,9 +111,6 @@ protected:
 	float LockOnUpdateInterval = 0.5f;
 	
 	// ===== 애니메이션 =====
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation|Setup")
-    TObjectPtr<UAnimMontage> EvadeMontage;
-    	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Setup")
 	TSubclassOf<UGameplayEffect> StaminaRegenEffect;
 	
@@ -160,7 +157,6 @@ protected:
 public:
 	FVector2D GetCurrentMoveInput() const { return CurrentMoveInput; }
 	void ApplyStaminaRegenDelay();
-	UAnimMontage* GetEvadeMontage() const { return EvadeMontage; }
 	float GetEvadeMontageBlendOutTime() const { return EvadeMontageBlendOutTime; }
 	// ===== 인터페이스 함수 =====
 	UFUNCTION(BlueprintPure)

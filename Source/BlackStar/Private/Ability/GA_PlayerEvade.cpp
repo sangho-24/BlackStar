@@ -43,19 +43,24 @@ void UGA_PlayerEvade::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 {
 	bSpentStamina = false;
 	EvadeRootMotionSourceID = 0;
+	ActiveEvadeMontage = nullptr;
+	
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	
 	ABSPlayerCharacter* PlayerCharacter = ActorInfo ? Cast<ABSPlayerCharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
+	
 	if (!PlayerCharacter || !HasEnoughStamina(ActorInfo))
 	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		EndAbility(Handle, ActorInfo, ActivationInfo,true,true);
 		return;
 	}
 	
-	UAnimMontage* EvadeMontage = PlayerCharacter->GetEvadeMontage();
-	if (!EvadeMontage)
+	const FAbilitySkillData SkillData = PlayerCharacter->GetSkillDataForAbility(AbilityTag);
+	ActiveEvadeMontage = SkillData.Montage;
+	
+	if (!ActiveEvadeMontage)
 	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		EndAbility(Handle, ActorInfo, ActivationInfo,true,true);
 		return;
 	}
 	
@@ -75,12 +80,12 @@ void UGA_PlayerEvade::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 	FaceEvadeDirectionIfNeeded(PlayerCharacter, EvadeMoveDirection);
 	StartEvadeMovement(PlayerCharacter, EvadeMoveDirection);
 
-	const float MontagePlayRate = GetMontagePlayRateForDuration(EvadeMontage, SectionName);
+	const float MontagePlayRate = GetMontagePlayRateForDuration(ActiveEvadeMontage, SectionName);
 	// 몽타주 재생
 	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 			this,
 			NAME_None,
-			EvadeMontage,
+			ActiveEvadeMontage,
 			MontagePlayRate,
 			SectionName,
 			false);
@@ -93,11 +98,6 @@ void UGA_PlayerEvade::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 		MontageTask->OnCancelled.AddDynamic(this, &UGA_PlayerEvade::OnMontageInterrupted);
 		MontageTask->ReadyForActivation();
 	}
-	
-		UE_LOG(LogTemp, Warning, TEXT("Evade Section: %s, Index: %d, PlayRate: %.2f"),
-    		*SectionName.ToString(),
-    		EvadeMontage->GetSectionIndex(SectionName),
-    		MontagePlayRate);
     	// if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
     	// {
     	// 	ActorInfo->AbilitySystemComponent->CurrentMontageJumpToSection(SectionName);
@@ -137,17 +137,18 @@ void UGA_PlayerEvade::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 		}
 	}
 
-	if (bWasCancelled && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
+	if (bWasCancelled && ActorInfo && ActorInfo->AbilitySystemComponent.IsValid() && ActiveEvadeMontage)
 	{
 		UAnimMontage* PlayingMontage = ActorInfo->AbilitySystemComponent->GetCurrentMontage();
-		UAnimMontage* EvadeMontage = PlayerCharacter ? PlayerCharacter->GetEvadeMontage() : nullptr;
-
-		if (PlayingMontage && PlayingMontage == EvadeMontage)
+		
+		if (PlayingMontage == ActiveEvadeMontage)
 		{
-			ActorInfo->AbilitySystemComponent->CurrentMontageStop(BlendOutTime);
+			ActorInfo->AbilitySystemComponent -> CurrentMontageStop(BlendOutTime);
 		}
 	}
 	
+	ActiveEvadeMontage = nullptr;
+	bSpentStamina = false;
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 

@@ -16,6 +16,9 @@
 #include "Interface/ICombatInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/BSGameplayTags.h"
+#include "Perception/AISense_Damage.h"
+#include "Perception/AISense_Hearing.h"
+#include "Utility/BSTeam.h"
 
 UGA_AttackBase::UGA_AttackBase()
 {
@@ -224,6 +227,11 @@ void UGA_AttackBase::DoMeleeTrace()
 			continue;
 		}
 
+		if (BSTeam::AreFriendly(Avatar, HitActor))
+		{
+			continue;
+		}
+		
 		if (HitActors.ContainsByPredicate([HitActor](const TWeakObjectPtr<AActor> &ExistingActor)
 										  { return ExistingActor.Get() == HitActor; }))
 		{
@@ -282,6 +290,23 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 	SpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_Damage, -FinalDamage);
 	SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 
+	// ===== 퍼셉션
+	UAISense_Damage::ReportDamageEvent(
+	TargetActor,	// WorldContextObject
+	TargetActor,	// DamagedActor
+	CurrentActorInfo->AvatarActor.Get(),
+	FinalDamage,
+	CurrentActorInfo->AvatarActor->GetActorLocation(),
+	HitResult.ImpactPoint);
+	
+	UAISense_Hearing::ReportNoiseEvent(
+	CurrentActorInfo->AvatarActor.Get(),
+	CurrentActorInfo->AvatarActor->GetActorLocation(),
+	1.0f,
+	CurrentActorInfo->AvatarActor.Get(),
+	1200.0f,
+	FName("AttackNoise"));
+	
 	// ===== 겜플큐 적용
 	if (ActiveTraceData.HitCueTag.IsValid())
 	{
@@ -302,6 +327,7 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 			HitResult,
 			ActiveTraceData.HitReactionData);
 	}
+	
 }
 
 void UGA_AttackBase::OnMontageCompleted()
@@ -413,6 +439,8 @@ void UGA_AttackBase::FaceTarget(AActor *TargetActor)
 	FRotator NewRotation = Character->GetActorRotation();
 	NewRotation.Yaw = ToTarget.Rotation().Yaw;
 	Character->SetActorRotation(NewRotation);
+	// 보간버전
+	// Character->StartTurning(NewRotation,AttackTurnSpeed);
 }
 
 void UGA_AttackBase::FaceAttackDirection()

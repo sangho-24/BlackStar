@@ -7,8 +7,6 @@
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
 
-
-
 void ABSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -88,6 +86,16 @@ void ABSPlayerController::OnUnPossess()
 	CachedAS = nullptr;
 
 	Super::OnUnPossess();
+}
+
+void ABSPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	TeamId = NewTeamID;
+}
+
+FGenericTeamId ABSPlayerController::GetGenericTeamId() const
+{
+	return TeamId;
 }
 
 void ABSPlayerController::BindHUDDelegates()

@@ -41,6 +41,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	FVector LastKnownTargetLocation = FVector::ZeroVector;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	bool bHasLastKnownTargetLocation = false;
 
 private:
 	FDelegateHandle CurrentHPDelegateHandle;
@@ -56,6 +59,8 @@ public:
 
 	void SetLastKnownTargetLocation(const FVector& Location);
 	FVector GetLastKnownTargetLocation() const { return LastKnownTargetLocation; }
+	bool HasLastKnownTargetLocation() const { return bHasLastKnownTargetLocation; }
+	void ClearLastKnownTargetLocation();
 
 protected:
 	virtual void BeginPlay() override;

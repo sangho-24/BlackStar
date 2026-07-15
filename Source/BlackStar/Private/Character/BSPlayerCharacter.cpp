@@ -508,18 +508,20 @@ void ABSPlayerCharacter::StopLockOnUpdateTimer()
 
 void ABSPlayerCharacter::StopEvadeMontageTail()
 {
-	if (!EvadeMontage)
+	const FAbilitySkillData SkillData = GetSkillDataForAbility(BSGameplayTags::Ability_Player_Evade);
+	UAnimMontage* CurrentEvadeMontage = SkillData.Montage;
+	
+	if (!CurrentEvadeMontage)
 	{
 		return;
 	}
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
-	if (AnimInstance && AnimInstance->Montage_IsPlaying(EvadeMontage))
+	if (AnimInstance && AnimInstance -> Montage_IsPlaying(CurrentEvadeMontage))
 	{
-		AnimInstance->Montage_Stop(
-			EvadeMontageBlendOutTime,
-			EvadeMontage);
+		AnimInstance->Montage_Stop(EvadeMontageBlendOutTime, CurrentEvadeMontage);
 	}
 }
+
 
 void ABSPlayerCharacter::OnDeathStarted(AActor *Killer)
 {

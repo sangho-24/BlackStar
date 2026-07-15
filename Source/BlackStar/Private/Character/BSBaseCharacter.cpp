@@ -226,6 +226,21 @@ void ABSBaseCharacter::ApplyHitReaction(AActor* Attacker, const FHitResult& HitR
 	}
 }
 
+FGenericTeamId ABSBaseCharacter::GetGenericTeamId() const
+{
+	const IGenericTeamAgentInterface* ControllerTeam = Cast<IGenericTeamAgentInterface>(GetController());
+	return ControllerTeam ? ControllerTeam->GetGenericTeamId() : FGenericTeamId::NoTeam;
+}
+
+void ABSBaseCharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	IGenericTeamAgentInterface* ControllerTeam = Cast<IGenericTeamAgentInterface>(GetController());
+	if (ControllerTeam)
+	{
+		ControllerTeam->SetGenericTeamId(NewTeamID);
+	}
+}
+
 void ABSBaseCharacter::DisableCharacterOnDeath()
 {
 	StopTurning();

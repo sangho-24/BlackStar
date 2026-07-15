@@ -7,6 +7,7 @@
 #include "Data/BSWeaponMotionSet.h"
 #include "Interface/IAbilityAnimationInterface.h"
 #include "Interface/ICombatInterface.h"
+#include "GenericTeamAgentInterface.h"
 #include "BSBaseCharacter.generated.h"
 
 class UBSAbilitySystemComponent;
@@ -20,7 +21,11 @@ class UBSWeaponComponent;
 
 
 UCLASS()
-class BLACKSTAR_API ABSBaseCharacter : public ACharacter, public IAbilitySystemInterface, public IAbilityAnimationInterface, public ICombatInterface
+class BLACKSTAR_API ABSBaseCharacter : public ACharacter
+	, public IAbilitySystemInterface
+	, public IAbilityAnimationInterface
+	, public ICombatInterface
+	, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -110,6 +115,9 @@ public:
 	virtual void Death(AActor* Killer) override;
 	virtual bool IsDead() const override { return bIsDead; }
 	virtual void ApplyHitReaction(AActor* Attacker, const FHitResult& HitResult, const FBSHitReactionData& ReactionData) override;
+	
+	virtual FGenericTeamId GetGenericTeamId() const override;
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
 	
 private:
 	void DisableCharacterOnDeath();

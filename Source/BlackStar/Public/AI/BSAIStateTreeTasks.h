@@ -80,6 +80,9 @@ struct FSTTask_MoveToLastKnownTargetLocationInstanceData
 	UPROPERTY(EditAnywhere, Category = "Context")
 	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
 
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float MovementSpeed = 200.0f;
+	
 	// 도착 판정 거리
 	UPROPERTY(EditAnywhere, Category = "Parameter")
 	float AcceptanceRadius = 120.0f;

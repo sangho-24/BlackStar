@@ -6,6 +6,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "GA_PlayerEvade.generated.h"
 
+class UAnimMontage;
+
 UENUM()
 enum class EPlayerEvadeDirection : uint8
 {
@@ -49,6 +51,9 @@ private:
 	bool bSpentStamina = false;
 	FTimerHandle EvadeTimerHandle;
 	uint16 EvadeRootMotionSourceID = 0;
+	
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> ActiveEvadeMontage;
 	
 protected:
 	virtual bool CanActivateAbility(
