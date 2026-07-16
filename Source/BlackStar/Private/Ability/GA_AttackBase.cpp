@@ -274,9 +274,9 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 	{
 		if (const UBSWeaponComponent* WeaponComponent = BSCharacter->GetWeaponComponent())
 		{
-			if (WeaponComponent -> GetEquippedWeapon())
+			if (WeaponComponent->GetEquippedWeapon())
 			{
-				FinalDamage += WeaponComponent -> GetBaseDamage();
+				FinalDamage += WeaponComponent->GetBaseDamage();
 			}
 		}
 	}

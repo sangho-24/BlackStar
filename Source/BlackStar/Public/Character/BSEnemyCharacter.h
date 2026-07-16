@@ -9,6 +9,7 @@
 class UWidgetComponent;
 class UUserWidget;
 struct FOnAttributeChangeData;
+class ABSPatrolRoute;
 
 UCLASS()
 class BLACKSTAR_API ABSEnemyCharacter : public ABSBaseCharacter
@@ -44,6 +45,18 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	bool bHasLastKnownTargetLocation = false;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI|Patrol")
+	FVector PatrolOrigin = FVector::ZeroVector;
+	
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "AI|Patrol|Setup", meta = (ExposeOnSpawn = "true"))
+	TObjectPtr<ABSPatrolRoute> PatrolRoute = nullptr;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI|Patrol")
+	int32 CurrentPatrolPointIndex = 0;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "AI|Patrol")
+	int32 PatrolDirection = 1;
 
 private:
 	FDelegateHandle CurrentHPDelegateHandle;
@@ -56,11 +69,18 @@ public:
 	virtual AActor *GetCombatTarget() const override;
 	virtual void SetCombatTarget(AActor *NewTarget) override;
 	virtual void ClearCombatTarget() override;
+	
+	FVector GetPatrolOrigin() const { return PatrolOrigin; }
+	ABSPatrolRoute* GetPatrolRoute() const { return PatrolRoute; }
 
 	void SetLastKnownTargetLocation(const FVector& Location);
 	FVector GetLastKnownTargetLocation() const { return LastKnownTargetLocation; }
 	bool HasLastKnownTargetLocation() const { return bHasLastKnownTargetLocation; }
 	void ClearLastKnownTargetLocation();
+	bool HasPatrolRoute() const;
+	FVector GetCurrentPatrolPointLocation() const;
+	void InitializePatrolPoint();
+	void AdvancePatrolPoint();
 
 protected:
 	virtual void BeginPlay() override;

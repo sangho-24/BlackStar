@@ -7,6 +7,7 @@
 #include "StateTreeExecutionTypes.h"
 #include "StateTreeAsyncExecutionContext.h"
 #include "AIController.h"
+#include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -138,13 +139,7 @@ void FSTTask_ActivateAbilityByTag::UnbindAbilityEndedDelegate(FInstanceDataType&
 	InstanceData.ActivatedAbilityHandle = FGameplayAbilitySpecHandle();
 }
 
-#if WITH_EDITOR
-FText FSTTask_ActivateAbilityByTag::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
-	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
-{
-	return FText::FromString(TEXT("태그로 GAS어빌리티 발동!!"));
-}
-#endif
+
 
 
 // ===== 퍼셉션 위치로 이동!! =====
@@ -347,7 +342,6 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation
 		EnemyCharacter->ClearLastKnownTargetLocation();
 		return EStateTreeRunStatus::Succeeded;
 	}
-
 	return EStateTreeRunStatus::Running;
 }
 
@@ -358,19 +352,11 @@ bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(const FInstanceDa
 	{
 		return false;
 	}
-
 	const FVector CurrentLocation = EnemyCharacter->GetActorLocation();
-
 	return FVector::DistSquared2D(CurrentLocation, GoalLocation) <= FMath::Square(InstanceData.AcceptanceRadius);
 }
 
-#if WITH_EDITOR
-FText FSTTask_MoveToLastKnownTargetLocation::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
-	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
-{
-	return FText::FromString(TEXT("퍼셉션 위치로 이동!!"));
-}
-#endif
+
 
 // ===== 잠시 대기!! ======
 FSTTask_WaitRandom::FSTTask_WaitRandom()
@@ -379,8 +365,7 @@ FSTTask_WaitRandom::FSTTask_WaitRandom()
 	bShouldStateChangeOnReselect = false;
 }
 
-EStateTreeRunStatus FSTTask_WaitRandom::EnterState(
-	FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+EStateTreeRunStatus FSTTask_WaitRandom::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
@@ -390,23 +375,247 @@ EStateTreeRunStatus FSTTask_WaitRandom::EnterState(
 	InstanceData.ElapsedTime = 0.0f;
 	InstanceData.TargetWaitTime = FMath::RandRange(MinTime, MaxTime);
 
-	return InstanceData.TargetWaitTime <= 0.0f
-		? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Running;
+	return InstanceData.TargetWaitTime <= 0.0f ? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Running;
 }
 
-EStateTreeRunStatus FSTTask_WaitRandom::Tick(
-	FStateTreeExecutionContext& Context, const float DeltaTime) const
+EStateTreeRunStatus FSTTask_WaitRandom::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-
 	InstanceData.ElapsedTime += DeltaTime;
-
-	return InstanceData.ElapsedTime >= InstanceData.TargetWaitTime
-		? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Running;
+	return InstanceData.ElapsedTime >= InstanceData.TargetWaitTime ? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Running;
 }
 
-FText FSTTask_WaitRandom::GetDescription(const FGuid& ID, FStateTreeDataView InstanceDataView,
-	const IStateTreeBindingLookup& BindingLookup, EStateTreeNodeFormatting Formatting) const
+
+
+// ===== 패트롤 =====
+// ===== 랜덤 패트롤 =====
+FSTTask_RandomPatrol::FSTTask_RandomPatrol()
 {
-	return FText::FromString(TEXT("잠시 대기!!"));
+	bShouldCallTick = true;
+	bShouldStateChangeOnReselect = false;
+}
+
+EStateTreeRunStatus FSTTask_RandomPatrol::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+    FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+    ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+    if (!EnemyCharacter || EnemyCharacter->IsDead())
+    {
+        return EStateTreeRunStatus::Failed;
+    }
+
+    AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+    if (!AIController)
+    {
+        return EStateTreeRunStatus::Failed;
+    }
+
+    UCharacterMovementComponent* Movement = EnemyCharacter->GetCharacterMovement();
+    if (!Movement)
+    {
+        return EStateTreeRunStatus::Failed;
+    }
+
+    // 이전 ChaseRun 속도를 Patrol 속도로 덮어씀
+    Movement->MaxWalkSpeed = InstanceData.PatrolSpeed;
+
+    UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(EnemyCharacter->GetWorld());
+    if (!NavigationSystem)
+    {
+        return EStateTreeRunStatus::Failed;
+    }
+
+    InstanceData.bHasPatrolDestination = false;
+    const FVector Origin = EnemyCharacter->GetPatrolOrigin();
+
+    // 너무 가까운 점이 뽑히면 몇 번 다시 시도
+    constexpr int32 MaxAttempts = 8;
+
+    for (int32 Attempt = 0; Attempt < MaxAttempts; ++Attempt)
+    {
+        FNavLocation RandomLocation;
+        const bool bFoundLocation = NavigationSystem->GetRandomReachablePointInRadius(Origin, InstanceData.PatrolRadius, RandomLocation);
+        if (!bFoundLocation)
+        {
+            continue;
+        }
+
+        const float DistanceSquared = FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), RandomLocation.Location);
+        if (DistanceSquared < FMath::Square(InstanceData.MinimumMoveDistance))
+        {
+            continue;
+        }
+
+        InstanceData.PatrolDestination = RandomLocation.Location;
+        InstanceData.bHasPatrolDestination = true;
+        break;
+    }
+
+    if (!InstanceData.bHasPatrolDestination)
+    {
+        return EStateTreeRunStatus::Failed;
+    }
+
+    const EPathFollowingRequestResult::Type Result =
+        AIController->MoveToLocation(
+            InstanceData.PatrolDestination,
+            InstanceData.AcceptanceRadius,
+            true,
+            true,
+            true,
+            false,
+            nullptr,
+            true);
+
+    if (Result == EPathFollowingRequestResult::Failed)
+    {
+        return EStateTreeRunStatus::Failed;
+    }
+    if (Result == EPathFollowingRequestResult::AlreadyAtGoal)
+    {
+        return EStateTreeRunStatus::Succeeded;
+    }
+    return EStateTreeRunStatus::Running;
+}
+
+EStateTreeRunStatus FSTTask_RandomPatrol::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter || EnemyCharacter->IsDead() || !InstanceData.bHasPatrolDestination)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+	if (!AIController)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	const float DistanceSquared = FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), InstanceData.PatrolDestination);
+	if (DistanceSquared <= FMath::Square(InstanceData.AcceptanceRadius))
+	{
+		return EStateTreeRunStatus::Succeeded;
+	}
+
+	const EPathFollowingStatus::Type MoveStatus = AIController->GetMoveStatus();
+	if (MoveStatus == EPathFollowingStatus::Moving || MoveStatus == EPathFollowingStatus::Waiting)
+	{
+		return EStateTreeRunStatus::Running;
+	}
+	
+	return EStateTreeRunStatus::Failed;
+}
+
+void FSTTask_RandomPatrol::ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	if (InstanceData.EnemyCharacter)
+	{
+		if (AAIController* AIController = Cast<AAIController>(InstanceData.EnemyCharacter->GetController()))
+		{
+			AIController->StopMovement();
+		}
+	}
+	InstanceData.PatrolDestination =FVector::ZeroVector;
+	InstanceData.bHasPatrolDestination = false;
+}
+
+
+// ===== 루트 패트롤 =====
+FSTTask_RoutePatrol::FSTTask_RoutePatrol()
+{
+	bShouldCallTick = true;
+	bShouldStateChangeOnReselect = false;
+}
+
+EStateTreeRunStatus FSTTask_RoutePatrol::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter || EnemyCharacter->IsDead() || !EnemyCharacter->HasPatrolRoute())
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+	UCharacterMovementComponent* Movement = EnemyCharacter->GetCharacterMovement();
+	if (!AIController || !Movement)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	Movement->MaxWalkSpeed = FMath::Max(0.0f, InstanceData.PatrolSpeed);
+	InstanceData.PatrolDestination = EnemyCharacter->GetCurrentPatrolPointLocation();
+	InstanceData.bMoveRequested = false;
+
+	const EPathFollowingRequestResult::Type Result =
+		AIController->MoveToLocation(
+			InstanceData.PatrolDestination,
+			InstanceData.AcceptanceRadius,
+			false,
+			true,
+			true,
+			false,
+			nullptr,
+			true);
+
+	if (Result == EPathFollowingRequestResult::Failed)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	if (Result == EPathFollowingRequestResult::AlreadyAtGoal)
+	{
+		EnemyCharacter->AdvancePatrolPoint();
+		return EStateTreeRunStatus::Succeeded;
+	}
+
+	InstanceData.bMoveRequested = true;
+	return EStateTreeRunStatus::Running;
+}
+
+EStateTreeRunStatus FSTTask_RoutePatrol::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter || EnemyCharacter->IsDead() || !EnemyCharacter->HasPatrolRoute() || !InstanceData.bMoveRequested)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	AAIController* AIController = Cast<AAIController>(EnemyCharacter->GetController());
+	if (!AIController)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	const float DistanceSquared = FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), InstanceData.PatrolDestination);
+	if (DistanceSquared <= FMath::Square(InstanceData.AcceptanceRadius))
+	{
+		EnemyCharacter->AdvancePatrolPoint();
+		return EStateTreeRunStatus::Succeeded;
+	}
+	
+	const EPathFollowingStatus::Type MoveStatus = AIController->GetMoveStatus();
+	if (MoveStatus == EPathFollowingStatus::Moving || MoveStatus == EPathFollowingStatus::Waiting)
+	{
+		return EStateTreeRunStatus::Running;
+	}
+	
+	return EStateTreeRunStatus::Failed;
+}
+
+void FSTTask_RoutePatrol::ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	if (InstanceData.EnemyCharacter)
+	{
+		if (AAIController* AIController = Cast<AAIController>(InstanceData.EnemyCharacter->GetController()))
+		{
+			AIController->StopMovement();
+		}
+	}
+	InstanceData.PatrolDestination = FVector::ZeroVector;
+	InstanceData.bMoveRequested = false;
 }

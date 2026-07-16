@@ -29,13 +29,7 @@ struct BLACKSTAR_API FSTCondition_HasVisibleCombatTarget : public FStateTreeCond
 
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 
-#if WITH_EDITOR
-	virtual FText GetDescription(
-		const FGuid& ID,
-		FStateTreeDataView InstanceDataView,
-		const IStateTreeBindingLookup& BindingLookup,
-		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
-#endif
+
 };
 
 // ===== 범위 안에 있는지 =====
@@ -64,13 +58,7 @@ struct BLACKSTAR_API FSTCondition_IsCombatTargetInRange : public FStateTreeCondi
 
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 
-#if WITH_EDITOR
-	virtual FText GetDescription(
-		const FGuid& ID,
-		FStateTreeDataView InstanceDataView,
-		const IStateTreeBindingLookup& BindingLookup,
-		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
-#endif
+
 };
 
 // ===== 개편 =====
@@ -93,6 +81,7 @@ struct BLACKSTAR_API FSTCondition_HasCombatTarget : public FStateTreeConditionCo
 	using FInstanceDataType = FSTCondition_HasCombatTargetInstanceData;
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+	
 };
 
 // ===== 마지막 위치 아는지? =====
@@ -113,6 +102,7 @@ struct BLACKSTAR_API FSTCondition_HasLastKnownTargetLocation : public FStateTree
 	using FInstanceDataType = FSTCondition_HasLastKnownTargetLocationInstanceData;
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+	
 };
 
 // ===== 거리가 멀어졌어요 =====
@@ -140,6 +130,29 @@ FSTCondition_IsCombatTargetFartherThan : public FStateTreeConditionCommonBase
 	{
 		return FInstanceDataType::StaticStruct();
 	}
+	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+	
+};
 
+// ===== 순찰용 스플라인 있음? =====
+USTRUCT()
+struct FSTCondition_HasPatrolRouteInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+};
+
+USTRUCT(meta = (DisplayName = "Has Patrol Route", Category = "BlackStar|AI"))
+struct FSTCondition_HasPatrolRoute : public FStateTreeConditionCommonBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FSTCondition_HasPatrolRouteInstanceData;
+	virtual const UStruct* GetInstanceDataType() const override
+	{
+		return FInstanceDataType::StaticStruct();
+	}
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 };

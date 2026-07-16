@@ -48,27 +48,16 @@ struct FSTTask_ActivateAbilityByTag : public FStateTreeTaskCommonBase
 	using FInstanceDataType = FSTTask_ActivateAbilityByTagInstanceData;
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 
-	virtual EStateTreeRunStatus EnterState(
-		FStateTreeExecutionContext& Context, 
-		const FStateTreeTransitionResult& Transition) const override;
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 
-	virtual void ExitState(
-		FStateTreeExecutionContext& Context,
-		const FStateTreeTransitionResult& Transition) const override;
-
-#if WITH_EDITOR
-	virtual FText GetDescription(
-		const FGuid& ID,
-		FStateTreeDataView InstanceDataView,
-		const IStateTreeBindingLookup& BindingLookup,
-		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
-#endif
+	virtual void ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 
 private:
-	static FGameplayAbilitySpec* FindAbilitySpecByTag(
-		UBSAbilitySystemComponent* BSASC, const FGameplayTag& AbilityTag);
+	static FGameplayAbilitySpec* FindAbilitySpecByTag(UBSAbilitySystemComponent* BSASC, const FGameplayTag& AbilityTag);
 
 	static void UnbindAbilityEndedDelegate(FInstanceDataType& InstanceData);
+	
+
 };
 
 // ===== 타겟에게 이동!! =====
@@ -102,31 +91,19 @@ struct FSTTask_MoveToLastKnownTargetLocation : public FStateTreeTaskCommonBase
 	using FInstanceDataType = FSTTask_MoveToLastKnownTargetLocationInstanceData;
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 
-	virtual EStateTreeRunStatus EnterState(
-		FStateTreeExecutionContext& Context,
-		const FStateTreeTransitionResult& Transition) const override;
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 
-	virtual EStateTreeRunStatus Tick(
-		FStateTreeExecutionContext& Context,
-		const float DeltaTime) const override;
+	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
 
-	virtual void ExitState(
-		FStateTreeExecutionContext& Context,
-		const FStateTreeTransitionResult& Transition) const override;
+	virtual void ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 	
-#if WITH_EDITOR
-	virtual FText GetDescription(
-		const FGuid& ID,
-		FStateTreeDataView InstanceDataView,
-		const IStateTreeBindingLookup& BindingLookup,
-		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
-#endif
-
 private:
 	static EStateTreeRunStatus RequestMove(FInstanceDataType& InstanceData);
 	static EStateTreeRunStatus RequestMoveToActor(FInstanceDataType& InstanceData, AActor* TargetActor);
 	static EStateTreeRunStatus RequestMoveToLocation(FInstanceDataType& InstanceData, const FVector& GoalLocation);
 	static bool HasReachedLocation(const FInstanceDataType& InstanceData, const FVector& GoalLocation);
+	
+
 };
 
 // ===== 잠시 대기!! ======
@@ -155,19 +132,95 @@ struct FSTTask_WaitRandom : public FStateTreeTaskCommonBase
 	using FInstanceDataType = FSTTask_WaitRandomInstanceData;
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 
-	virtual EStateTreeRunStatus EnterState(
-		FStateTreeExecutionContext& Context,
-		const FStateTreeTransitionResult& Transition) const override;
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 
-	virtual EStateTreeRunStatus Tick(
-		FStateTreeExecutionContext& Context,
-		const float DeltaTime) const override;
+	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
 	
-#if WITH_EDITOR
-	virtual FText GetDescription(
-		const FGuid& ID,
-		FStateTreeDataView InstanceDataView,
-		const IStateTreeBindingLookup& BindingLookup,
-		EStateTreeNodeFormatting Formatting = EStateTreeNodeFormatting::Text) const override;
-#endif
+
+};
+
+// ===== 랜덤 패트롤 =====
+USTRUCT()
+struct FSTTask_RandomPatrolInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float PatrolSpeed = 120.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float PatrolRadius = 800.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float MinimumMoveDistance = 200.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float AcceptanceRadius = 80.0f;
+
+	FVector PatrolDestination = FVector::ZeroVector;
+	bool bHasPatrolDestination = false;
+};
+
+USTRUCT(meta = (DisplayName = "RandomPatrol", Category = "BlackStar|AI"))
+struct FSTTask_RandomPatrol : public FStateTreeTaskCommonBase
+{
+	GENERATED_BODY()
+
+	FSTTask_RandomPatrol();
+
+	using FInstanceDataType = FSTTask_RandomPatrolInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+
+	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, float DeltaTime) const override;
+
+	virtual void ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+	
+
+};
+
+// ===== 루트 패트롤 =====
+USTRUCT()
+struct FSTTask_RoutePatrolInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float PatrolSpeed = 120.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float AcceptanceRadius = 80.0f;
+
+	FVector PatrolDestination = FVector::ZeroVector;
+
+	bool bMoveRequested = false;
+};
+
+USTRUCT(meta = (DisplayName = "Route Patrol", Category = "BlackStar|AI"))
+struct FSTTask_RoutePatrol : public FStateTreeTaskCommonBase
+{
+	GENERATED_BODY()
+
+	FSTTask_RoutePatrol();
+
+	using FInstanceDataType = FSTTask_RoutePatrolInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override
+	{
+		return FInstanceDataType::StaticStruct();
+	}
+
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+
+	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, float DeltaTime) const override;
+
+	virtual void ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 };

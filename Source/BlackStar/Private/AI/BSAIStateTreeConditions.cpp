@@ -30,16 +30,6 @@ bool FSTCondition_HasVisibleCombatTarget::TestCondition(FStateTreeExecutionConte
 	return AIController->GetVisibleTarget() == CombatTarget;
 }
 
-#if WITH_EDITOR
-FText FSTCondition_HasVisibleCombatTarget::GetDescription(
-	const FGuid& ID,
-	FStateTreeDataView InstanceDataView,
-	const IStateTreeBindingLookup& BindingLookup,
-	EStateTreeNodeFormatting Formatting) const
-{
-	return FText::FromString(TEXT("타겟이 시야 안에 있음?"));
-}
-#endif
 
 // ===== 범위 안에 있는지 =====
 bool FSTCondition_IsCombatTargetInRange::TestCondition(FStateTreeExecutionContext& Context) const
@@ -91,16 +81,7 @@ bool FSTCondition_IsCombatTargetInRange::TestCondition(FStateTreeExecutionContex
 	return DistanceSq <= FMath::Square(EffectiveRange);
 }
 
-#if WITH_EDITOR
-FText FSTCondition_IsCombatTargetInRange::GetDescription(
-	const FGuid& ID,
-	FStateTreeDataView InstanceDataView,
-	const IStateTreeBindingLookup& BindingLookup,
-	EStateTreeNodeFormatting Formatting) const
-{
-	return FText::FromString(TEXT("타겟이 범위 안에 있음?"));
-}
-#endif
+
 
 // ===== 개편 =====
 // 타겟이 있는가?
@@ -130,6 +111,7 @@ bool FSTCondition_HasCombatTarget::TestCondition(FStateTreeExecutionContext& Con
 	return true;
 }
 
+
 // ===== 마지막 위치 아는지? =====
 bool FSTCondition_HasLastKnownTargetLocation::TestCondition(FStateTreeExecutionContext& Context) const
 {
@@ -140,6 +122,7 @@ bool FSTCondition_HasLastKnownTargetLocation::TestCondition(FStateTreeExecutionC
 		&& !EnemyCharacter->IsDead() 
 		&& EnemyCharacter->HasLastKnownTargetLocation();
 }
+
 
 // ===== 거리가 멀어졌어요 =====
 bool FSTCondition_IsCombatTargetFartherThan::TestCondition(FStateTreeExecutionContext& Context) const
@@ -159,4 +142,11 @@ bool FSTCondition_IsCombatTargetFartherThan::TestCondition(FStateTreeExecutionCo
 
 	const float DistanceSquared = FVector::DistSquared2D(EnemyCharacter->GetActorLocation(), CombatTarget->GetActorLocation());
 	return DistanceSquared > FMath::Square(InstanceData.Distance);
+}
+
+// ===== 정찰용 스플라인 있음? =====
+bool FSTCondition_HasPatrolRoute::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+	return InstanceData.EnemyCharacter && InstanceData.EnemyCharacter->HasPatrolRoute();
 }

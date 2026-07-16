@@ -7,6 +7,7 @@
 #include "UI/NameplateWidget.h"
 #include "Utility/BSGameplayTags.h"
 #include "Controller/BSAIController.h"
+#include "AI/BSPatrolRoute.h"
 
 ABSEnemyCharacter::ABSEnemyCharacter()
 {
@@ -25,6 +26,8 @@ void ABSEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	PatrolOrigin = GetActorLocation();
+	InitializePatrolPoint();
 	InitializeNameplate();
 }
 
@@ -94,6 +97,74 @@ void ABSEnemyCharacter::ClearLastKnownTargetLocation()
 {
 	LastKnownTargetLocation = FVector::ZeroVector;
 	bHasLastKnownTargetLocation = false;
+}
+
+bool ABSEnemyCharacter::HasPatrolRoute() const
+{
+	return IsValid(PatrolRoute) && PatrolRoute->GetNumPatrolPoints() > 0;
+}
+
+FVector ABSEnemyCharacter::GetCurrentPatrolPointLocation() const
+{
+	if (!HasPatrolRoute())
+	{
+		return GetActorLocation();
+	}
+	return PatrolRoute->GetPatrolPointLocation(CurrentPatrolPointIndex);
+}
+
+void ABSEnemyCharacter::InitializePatrolPoint()
+{
+	CurrentPatrolPointIndex = 0;
+	PatrolDirection = 1;
+	if (!HasPatrolRoute())
+	{
+		return;
+	}
+	const int32 ClosestIndex = PatrolRoute->FindClosestPatrolPointIndex(GetActorLocation());
+	if (ClosestIndex != INDEX_NONE)
+	{
+		CurrentPatrolPointIndex = ClosestIndex;
+	}
+}
+
+void ABSEnemyCharacter::AdvancePatrolPoint()
+{
+	if (!HasPatrolRoute())
+	{
+		CurrentPatrolPointIndex = 0;
+		PatrolDirection = 1;
+		return;
+	}
+
+	const int32 PointCount = PatrolRoute->GetNumPatrolPoints();
+
+	if (PointCount <= 1)
+	{
+		CurrentPatrolPointIndex = 0;
+		PatrolDirection = 1;
+		return;
+	}
+
+	if (PatrolRoute->GetPatrolMode() == EBSPatrolRouteMode::Loop)
+	{
+		CurrentPatrolPointIndex = (CurrentPatrolPointIndex + 1) % PointCount;
+	}
+	else if (PatrolRoute->GetPatrolMode() == EBSPatrolRouteMode::PingPong)
+	{
+		CurrentPatrolPointIndex += PatrolDirection;
+
+		if (CurrentPatrolPointIndex >= PointCount)
+		{
+			CurrentPatrolPointIndex = PointCount - 2;
+			PatrolDirection = -1;
+		}
+		else if (CurrentPatrolPointIndex < 0)
+		{
+			CurrentPatrolPointIndex = 1;
+			PatrolDirection = 1;
+		}
+	}
 }
 
 AActor* ABSEnemyCharacter::GetCombatTarget() const

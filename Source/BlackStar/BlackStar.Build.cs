@@ -25,7 +25,10 @@ public class BlackStar : ModuleRules
 			"Niagara",
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"NavigationSystem",
+		});
 
 		PublicIncludePaths.AddRange(new string[] {
 			"BlackStar",
