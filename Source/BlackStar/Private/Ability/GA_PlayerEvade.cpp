@@ -22,7 +22,6 @@ UGA_PlayerEvade::UGA_PlayerEvade()
 	ActivationOwnedTags.AddTag(BSGameplayTags::State_Evading);
 	
 	ActivationBlockedTags.AddTag(BSGameplayTags::State_Dead);
-	ActivationBlockedTags.AddTag(BSGameplayTags::State_Attacking);
 	ActivationBlockedTags.AddTag(BSGameplayTags::State_Evading);
 }
 

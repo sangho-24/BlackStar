@@ -8,6 +8,8 @@
 #include "Character/BSPlayerCharacter.h"
 #include "TimerManager.h"
 #include "GAS/BSBaseAttributeSet.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 
 
 UGA_PlayerBasicAttack::UGA_PlayerBasicAttack()
@@ -220,11 +222,26 @@ void UGA_PlayerBasicAttack::PlayNextCombo()
 		return;
 	}
 	
+	// ===== 현재 몽타주 확인
+	UAnimInstance* AnimInstance = nullptr;
+	UAnimMontage* ActiveMontage = nullptr;
+	if (!NextMontage)
+	{
+		USkeletalMeshComponent* SKMesh = AvatarActor ? AvatarActor->FindComponentByClass<USkeletalMeshComponent>() : nullptr;
+		AnimInstance = SKMesh ? SKMesh->GetAnimInstance() : nullptr;
+		ActiveMontage = GetCurrentMontage();
+		
+		if (!AnimInstance || !ActiveMontage || !ActiveMontage->IsValidSectionName(NextSection))
+		{
+			return;
+		}
+	}
+	
+	// 콤보 실행
 	ApplyStaminaCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo);
 	bSpentStamina = true;
 	bIsComboWindowOpen = false;
 	bSaveCombo = false;
-	bComboTransitioning = true;
 
 	AttackTarget = ResolveAttackTarget();
 	if (AttackTarget)
@@ -239,6 +256,7 @@ void UGA_PlayerBasicAttack::PlayNextCombo()
 
 	if (NextMontage)
 	{
+		bComboTransitioning = true;
 		if (!NextSection.IsNone() && NextMontage->IsValidSectionName(NextSection))
 		{
 			PlayMontage(NextMontage, NextSection);
@@ -249,17 +267,7 @@ void UGA_PlayerBasicAttack::PlayNextCombo()
 		}
 		return;
 	}
-
-	if (!NextSection.IsNone())
-	{
-		USkeletalMeshComponent* Mesh = AvatarActor ? AvatarActor->FindComponentByClass<USkeletalMeshComponent>() : nullptr;
-		UAnimInstance* AnimInstance = Mesh ? Mesh->GetAnimInstance() : nullptr;
-		if (AnimInstance)
-		{
-			AnimInstance->Montage_JumpToSection(NextSection);
-		}
-		return;
-	}
+	AnimInstance->Montage_JumpToSection(NextSection, ActiveMontage);
 }
 
 void UGA_PlayerBasicAttack::OnMontageCancelled()
