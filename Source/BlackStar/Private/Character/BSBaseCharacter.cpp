@@ -85,6 +85,11 @@ void ABSBaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void ABSBaseCharacter::StartTurning(const FRotator& TargetRotation, float TurnSpeed)
 {
+	if (AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(BSGameplayTags::State_HitReacting))
+	{
+		return;
+	}
+	
 	TurnTargetRotation = FRotator(0.0f, TargetRotation.Yaw, 0.0f);
 	CurrentTurnSpeed = TurnSpeed;
 

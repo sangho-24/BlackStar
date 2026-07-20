@@ -31,7 +31,7 @@ protected:
 	float NameplateHeight = 1.4f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Setup")
-	FVector2D NameplateSize = FVector2D(300.0f, 75.0f);
+	FVector2D NameplateSize = FVector2D(300.0f, 50.0f);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Death|Setup")
 	float CorpseLifeTime = 5.0f;

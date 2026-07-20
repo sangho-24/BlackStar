@@ -15,19 +15,27 @@ enum class EBSHitReactionType : uint8
 	Launch
 };
 
+
 USTRUCT(BlueprintType)
 struct FBSHitReactionData
 {
 	GENERATED_BODY()
 
+	// 경직 종류 (모션)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit Reaction")
 	EBSHitReactionType ReactionType = EBSHitReactionType::None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit Reaction")
 	float KnockbackStrength = 0.0f;
 
+	// 특정 공격에만 예외가 필요할 경우에 사용하려고 만들었는데
+	// 쓸 일 없을 것 같음, 필요할 때 추가하자.
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit Reaction")
+	// FGameplayTagContainer IgnoreIfTargetHasTags;
+	
+	// 어떤 공격을 맞았나? (검, 화살, 마법 등 이펙트)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit Reaction")
-	FGameplayTagContainer IgnoreIfTargetHasTags;
+    FGameplayTag DamageTypeTag;
 };
 
 USTRUCT(BlueprintType)
@@ -40,6 +48,9 @@ struct FAbilitySkillData
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
 	FName StartSection = NAME_None;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Skill")
+	TArray<TObjectPtr<UAnimMontage>> MontageVariants;
 };
 
 USTRUCT(BlueprintType)

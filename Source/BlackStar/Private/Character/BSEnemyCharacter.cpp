@@ -11,9 +11,7 @@
 
 ABSEnemyCharacter::ABSEnemyCharacter()
 {
-	NameplateWidgetComponent =
-		CreateDefaultSubobject<UWidgetComponent>(
-			TEXT("NameplateWidgetComponent"));
+	NameplateWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("NameplateWidgetComponent"));
 
 	// Mesh보다 Capsule에 붙이는 쪽이 메시 회전/오프셋 영향을 덜 받음
 	NameplateWidgetComponent->SetupAttachment(GetCapsuleComponent());

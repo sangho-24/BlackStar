@@ -66,6 +66,7 @@ protected:
 	void StopMeleeTrace();
 	UFUNCTION() void DoMeleeTrace();
 	void ApplyMeleeDamage(AActor* TargetActor, const FHitResult& HitResult);
+	UAnimMontage* SelectAttackMontage(const FAbilitySkillData& SkillData) const;
 
 	UFUNCTION() virtual void OnMontageCompleted();
 	UFUNCTION() virtual void OnMontageCancelled();
@@ -77,4 +78,6 @@ protected:
 	virtual AActor* ResolveAttackTarget() const;
 	virtual void FaceTarget(AActor* TargetActor);
 	virtual void FaceAttackDirection();
+	
+
 };

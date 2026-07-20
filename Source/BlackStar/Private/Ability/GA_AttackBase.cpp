@@ -67,10 +67,12 @@ bool UGA_AttackBase::StartAttack(const FGameplayEventData *TriggerEventData)
 	}
 
 	const FAbilitySkillData SkillData = AnimChar->GetSkillDataForAbility(AbilityTag);
-	if (!SkillData.Montage)
-	{
-		return false;
-	}
+	
+	UAnimMontage* SelectedMontage = SelectAttackMontage(SkillData);
+    if (!SelectedMontage)
+    {
+    	return false;
+    }
 
 	AttackTarget = ResolveAttackTarget();
 	if (AttackTarget)
@@ -82,7 +84,7 @@ bool UGA_AttackBase::StartAttack(const FGameplayEventData *TriggerEventData)
 		FaceAttackDirection();
 	}
 	HitActors.Empty();
-	PlayMontage(SkillData.Montage, SkillData.StartSection);
+	PlayMontage(SelectedMontage, SkillData.StartSection);
 	RegisterCommonEventTasks();
 
 	return true;
@@ -328,6 +330,19 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 			ActiveTraceData.HitReactionData);
 	}
 	
+}
+
+UAnimMontage* UGA_AttackBase::SelectAttackMontage(const FAbilitySkillData& SkillData) const
+{
+	if (!SkillData.MontageVariants.IsEmpty())
+	{
+		const int32 RandomIndex = FMath::RandRange(0, SkillData.MontageVariants.Num() - 1);
+		if (UAnimMontage* SelectedMontage = SkillData.MontageVariants[RandomIndex].Get())
+		{
+			return SelectedMontage;
+		}
+	}
+	return SkillData.Montage.Get();
 }
 
 void UGA_AttackBase::OnMontageCompleted()
