@@ -159,7 +159,7 @@ void ABSPlayerCharacter::MoveAction(const FInputActionValue &Value)
 {
 	if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
 	{
-		if (BSASC->HasMatchingGameplayTag(BSGameplayTags::State_Evading))
+		if (BSASC->HasMatchingGameplayTag(BSGameplayTags::State_Block_Move))
 		{
 			CurrentMoveInput = FVector2D::ZeroVector;
 			return;
@@ -216,7 +216,7 @@ void ABSPlayerCharacter::JumpAction()
 {
 	if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
 	{
-		if (BSASC->HasMatchingGameplayTag(BSGameplayTags::State_Evading))
+		if (BSASC->HasMatchingGameplayTag(BSGameplayTags::State_Block_Move))
 		{
 			return;
 		}
@@ -228,7 +228,6 @@ void ABSPlayerCharacter::JumpAction()
 
 void ABSPlayerCharacter::EvadeAction()
 {
-	UE_LOG(LogTemp, Log, TEXT("EvadeAction 호출됨"));
 	UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent();
 	if (!BSASC)
 	{

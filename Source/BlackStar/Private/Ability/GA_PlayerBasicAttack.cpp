@@ -272,6 +272,7 @@ void UGA_PlayerBasicAttack::PlayNextCombo()
 
 void UGA_PlayerBasicAttack::OnMontageCancelled()
 {
+	UE_LOG(LogTemp, Warning,TEXT("[Combo] OnMontageCancelled. bComboTransitioning = %d"),bComboTransitioning);
 	if (bComboTransitioning)
 	{
 		bComboTransitioning = false;

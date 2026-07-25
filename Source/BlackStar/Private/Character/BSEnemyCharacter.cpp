@@ -165,6 +165,16 @@ void ABSEnemyCharacter::AdvancePatrolPoint()
 	}
 }
 
+void ABSEnemyCharacter::ApplyHitReaction(AActor* Attacker, const FHitResult& HitResult, const FBSHitReactionData& ReactionData)
+{
+	Super::ApplyHitReaction(Attacker, HitResult, ReactionData);
+	AController *CurrentController = GetController();
+	if (ABSAIController *AIController = Cast<ABSAIController>(CurrentController))
+	{
+		AIController->SendStateTreeEvent(BSGameplayTags::Event_Character_HitReaction);
+	}
+}
+
 AActor* ABSEnemyCharacter::GetCombatTarget() const
 {
 	return CombatTarget;
@@ -181,16 +191,10 @@ void ABSEnemyCharacter::OnDeathStarted(AActor *Killer)
 	// 여기서 경험치, 드롭, AI 정리 등을 처리할 수 있음.
 	AController *CurrentController = GetController();
 
-	UE_LOG(LogTemp, Warning, TEXT("Controller: %s"),
-		   CurrentController ? *CurrentController->GetName() : TEXT("nullptr"));
-
-	UE_LOG(LogTemp, Warning, TEXT("Controller Class: %s"),
-		   CurrentController ? *CurrentController->GetClass()->GetName() : TEXT("nullptr"));
-
 	if (ABSAIController *AIController = Cast<ABSAIController>(CurrentController))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ai controller connected"));
-		AIController->SendDeathStateTreeEvent();
+		AIController->SendStateTreeEvent(BSGameplayTags::Event_Character_Death);
 	}
 	else
 	{

@@ -4,6 +4,7 @@
 #include "Controller/BSAIController.h"
 #include "StateTreeExecutionContext.h"
 #include "Components/CapsuleComponent.h"
+#include "GAS/BSAbilitySystemComponent.h"
 
 // ===== 시야에 있는지 =====
 bool FSTCondition_HasVisibleCombatTarget::TestCondition(FStateTreeExecutionContext& Context) const
@@ -149,4 +150,25 @@ bool FSTCondition_HasPatrolRoute::TestCondition(FStateTreeExecutionContext& Cont
 {
 	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 	return InstanceData.EnemyCharacter && InstanceData.EnemyCharacter->HasPatrolRoute();
+}
+
+// ===== GAS 태그 있는지 확인 =====
+bool FSTCondition_HasGameplayTag::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
+	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	if (!EnemyCharacter || EnemyCharacter->IsDead())
+	{
+		return false;
+	}
+
+	const UAbilitySystemComponent* ASC = EnemyCharacter->GetAbilitySystemComponent();
+	if (!ASC)
+	{
+		return false;
+	}
+
+	const bool bHasTag = ASC->HasMatchingGameplayTag(InstanceData.GameplayTag);
+	return InstanceData.bInvert ? !bHasTag : bHasTag;
 }

@@ -81,6 +81,8 @@ public:
 	FVector GetCurrentPatrolPointLocation() const;
 	void InitializePatrolPoint();
 	void AdvancePatrolPoint();
+	
+	virtual void ApplyHitReaction(AActor* Attacker, const FHitResult& HitResult, const FBSHitReactionData& ReactionData) override;
 
 protected:
 	virtual void BeginPlay() override;

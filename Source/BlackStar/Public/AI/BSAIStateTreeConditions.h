@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "StateTreeConditionBase.h"
-
+#include "GameplayTagContainer.h"
 #include "BSAIStateTreeConditions.generated.h"
 
 class ABSEnemyCharacter;
@@ -150,9 +150,33 @@ struct FSTCondition_HasPatrolRoute : public FStateTreeConditionCommonBase
 	GENERATED_BODY()
 
 	using FInstanceDataType = FSTCondition_HasPatrolRouteInstanceData;
-	virtual const UStruct* GetInstanceDataType() const override
-	{
-		return FInstanceDataType::StaticStruct();
-	}
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+};
+
+// ===== GAS 태그 있는지 확인 =====
+USTRUCT()
+struct FSTCondition_HasGameplayTagInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	FGameplayTag GameplayTag;
+	
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	bool bInvert = false;
+};
+
+USTRUCT(meta = (DisplayName = "Has Gameplay Tag", Category = "BlackStar|AI"))
+struct FSTCondition_HasGameplayTag : public FStateTreeConditionCommonBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FSTCondition_HasGameplayTagInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 };

@@ -20,6 +20,7 @@ UGA_PlayerEvade::UGA_PlayerEvade()
 	SetAssetTags(AssetTags);
 	
 	ActivationOwnedTags.AddTag(BSGameplayTags::State_Evading);
+	ActivationOwnedTags.AddTag(BSGameplayTags::State_Block_Move);
 	
 	ActivationBlockedTags.AddTag(BSGameplayTags::State_Dead);
 	ActivationBlockedTags.AddTag(BSGameplayTags::State_Evading);

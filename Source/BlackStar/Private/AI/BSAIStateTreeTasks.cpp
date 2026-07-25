@@ -358,7 +358,7 @@ bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(const FInstanceDa
 
 
 
-// ===== 잠시 대기!! ======
+// ===== 랜덤 대기!! ======
 FSTTask_WaitRandom::FSTTask_WaitRandom()
 {
 	bShouldCallTick = true;
@@ -385,7 +385,48 @@ EStateTreeRunStatus FSTTask_WaitRandom::Tick(FStateTreeExecutionContext& Context
 	return InstanceData.ElapsedTime >= InstanceData.TargetWaitTime ? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Running;
 }
 
+// ===== 태그 없어질 때까지 대기 =====
+FSTTask_WaitForGameplayTagRemoved::FSTTask_WaitForGameplayTagRemoved()
+{
+	bShouldCallTick = true;
+	bShouldStateChangeOnReselect = false;
+}
 
+EStateTreeRunStatus FSTTask_WaitForGameplayTagRemoved::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
+	if (!InstanceData.EnemyCharacter)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	const UAbilitySystemComponent* ASC = InstanceData.EnemyCharacter->GetAbilitySystemComponent();
+	if (!ASC)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	return ASC->HasMatchingGameplayTag(InstanceData.GameplayTag) ? EStateTreeRunStatus::Running : EStateTreeRunStatus::Succeeded;
+}
+
+EStateTreeRunStatus FSTTask_WaitForGameplayTagRemoved::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
+{
+	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
+	if (!InstanceData.EnemyCharacter)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	const UAbilitySystemComponent* ASC = InstanceData.EnemyCharacter->GetAbilitySystemComponent();
+	if (!ASC)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
+	return ASC->HasMatchingGameplayTag(InstanceData.GameplayTag) ? EStateTreeRunStatus::Running : EStateTreeRunStatus::Succeeded;
+}
 
 // ===== 패트롤 =====
 // ===== 랜덤 패트롤 =====
@@ -618,4 +659,64 @@ void FSTTask_RoutePatrol::ExitState(FStateTreeExecutionContext& Context, const F
 	}
 	InstanceData.PatrolDestination = FVector::ZeroVector;
 	InstanceData.bMoveRequested = false;
+}
+
+// 대상 위치로 회전
+FSTTask_RotateToLastKnownTargetLocation::FSTTask_RotateToLastKnownTargetLocation()
+{
+	bShouldCallTick = true;
+	bShouldStateChangeOnReselect = false;
+}
+
+EStateTreeRunStatus FSTTask_RotateToLastKnownTargetLocation::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& Data = Context.GetInstanceData(*this);
+	ABSEnemyCharacter* Enemy = Data.EnemyCharacter;
+	if (!Enemy || !Enemy->HasLastKnownTargetLocation())
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	FVector TargetLocation = FVector::ZeroVector;
+	if (AActor* CombatTarget = Enemy->GetCombatTarget())
+	{
+		TargetLocation = CombatTarget->GetActorLocation();
+	}
+	else if (Enemy->HasLastKnownTargetLocation())
+	{
+		TargetLocation = Enemy->GetLastKnownTargetLocation();
+	}
+	else
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	
+	FVector Direction = TargetLocation - Enemy->GetActorLocation();
+	Direction.Z = 0.0f;
+	if (Direction.IsNearlyZero())
+	{
+		return EStateTreeRunStatus::Succeeded;
+	}
+
+	Enemy->StartTurning(Direction.Rotation(), Data.TurnSpeed);
+	return Enemy->IsTurning() ? EStateTreeRunStatus::Running : EStateTreeRunStatus::Succeeded;
+}
+
+EStateTreeRunStatus FSTTask_RotateToLastKnownTargetLocation::Tick(FStateTreeExecutionContext& Context, float DeltaTime) const
+{
+	const FInstanceDataType& Data = Context.GetInstanceData(*this);
+	if (!Data.EnemyCharacter)
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+	
+	return Data.EnemyCharacter->IsTurning() ? EStateTreeRunStatus::Running : EStateTreeRunStatus::Succeeded;
+}
+
+void FSTTask_RotateToLastKnownTargetLocation::ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	FInstanceDataType& Data = Context.GetInstanceData(*this);
+	if (Data.EnemyCharacter)
+	{
+		Data.EnemyCharacter->StopTurning();
+	}
 }

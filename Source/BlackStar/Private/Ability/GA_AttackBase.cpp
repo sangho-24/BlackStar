@@ -111,12 +111,12 @@ void UGA_AttackBase::PlayMontage(UAnimMontage *Montage, FName StartSection)
 	MontageTask->OnCompleted.AddDynamic(this, &UGA_AttackBase::OnMontageCompleted);
 	MontageTask->OnCancelled.AddDynamic(this, &UGA_AttackBase::OnMontageCancelled);
 	MontageTask->OnInterrupted.AddDynamic(this, &UGA_AttackBase::OnMontageCancelled);
+	MontageTask->OnBlendOut.AddDynamic(this, &UGA_AttackBase::OnMontageCompleted);
 	MontageTask->ReadyForActivation();
 }
 
 void UGA_AttackBase::StartMeleeTrace()
 {
-	UE_LOG(LogTemp, Log, TEXT("Starting Melee Trace"));
 	if (!CurrentActorInfo || !CurrentActorInfo->AvatarActor.IsValid())
 	{
 		return;

@@ -106,7 +106,7 @@ private:
 
 };
 
-// ===== 잠시 대기!! ======
+// ===== 랜덤 대기!! ======
 USTRUCT()
 struct FSTTask_WaitRandomInstanceData
 {
@@ -135,8 +135,35 @@ struct FSTTask_WaitRandom : public FStateTreeTaskCommonBase
 	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 
 	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
-	
+};
 
+// ===== 태그 없어질때까지 대기 =====
+USTRUCT()
+struct FSTTask_WaitForGameplayTagRemovedInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	FGameplayTag GameplayTag;
+};
+
+USTRUCT(meta = (DisplayName = "Wait For Gameplay Tag Removed", Category = "BlackStar|AI"))
+struct FSTTask_WaitForGameplayTagRemoved : public FStateTreeTaskCommonBase
+{
+	GENERATED_BODY()
+
+	FSTTask_WaitForGameplayTagRemoved();
+	
+	using FInstanceDataType = FSTTask_WaitForGameplayTagRemovedInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+
+	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
 };
 
 // ===== 랜덤 패트롤 =====
@@ -212,6 +239,40 @@ struct FSTTask_RoutePatrol : public FStateTreeTaskCommonBase
 	FSTTask_RoutePatrol();
 
 	using FInstanceDataType = FSTTask_RoutePatrolInstanceData;
+
+	virtual const UStruct* GetInstanceDataType() const override
+	{
+		return FInstanceDataType::StaticStruct();
+	}
+
+	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+
+	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, float DeltaTime) const override;
+
+	virtual void ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+};
+
+// 대상 위치로 회전
+USTRUCT()
+struct FSTTask_RotateToLastKnownTargetLocationInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	float TurnSpeed = 360.0f;
+};
+
+USTRUCT(meta = (DisplayName = "Rotate To Last Known Target Location", Category = "BlackStar|AI"))
+struct FSTTask_RotateToLastKnownTargetLocation : public FStateTreeTaskCommonBase
+{
+	GENERATED_BODY()
+
+	FSTTask_RotateToLastKnownTargetLocation();
+
+	using FInstanceDataType = FSTTask_RotateToLastKnownTargetLocationInstanceData;
 
 	virtual const UStruct* GetInstanceDataType() const override
 	{

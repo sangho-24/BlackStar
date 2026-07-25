@@ -15,25 +15,31 @@ namespace BSGameplayTags
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitReaction_Flinch);
 
+	// 노티파이 || 몽타주 델리게이트
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_BasicAttack_ComboInput);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combo_WindowOpen);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combo_WindowClose);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_MeleeTrace_Start);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_MeleeTrace_End);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_SpawnProjectile);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Character_Death);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_HitReaction_Begin);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_HitReaction_End);
+	// ST트리 보낼거
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Character_Death);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Character_HitReaction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_AI_StimulusLocationUpdated);
 	
+	// 데미지 타입
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Melee);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Fire);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Ice);
 	
+	// 면역 상태
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Invulnerable);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Immune_Melee);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Immune_Fire);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Immune_Ice);
-	
+	// 행동 상태
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Attacking);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Combo);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_FaceTarget);
@@ -46,7 +52,7 @@ namespace BSGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_HitReacting);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Block_Move);
 
-	
+	// GE용 데이터
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_Damage);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_StaminaCost);
 }

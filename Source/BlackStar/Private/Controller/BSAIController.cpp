@@ -19,7 +19,7 @@ ABSAIController::ABSAIController()
 	SightConfig->SightRadius = 1800.0f;
 	SightConfig->LoseSightRadius = 2300.0f;
 	SightConfig->PeripheralVisionAngleDegrees = 65.0f;
-	SightConfig->SetMaxAge(2.0f);
+	SightConfig->SetMaxAge(5.0f);
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = false;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = false;
@@ -47,12 +47,17 @@ ABSAIController::ABSAIController()
 	bAttachToPawn = true;
 }
 
-void ABSAIController::SendDeathStateTreeEvent()
+void ABSAIController::SendStateTreeEvent(FGameplayTag EventTag)
 {
+	if (!StateTreeAI || !EventTag.IsValid())
+	{
+		return;
+	}
 	FStateTreeEvent Event;
-	Event.Tag = BSGameplayTags::Event_Character_Death;
+	Event.Tag = EventTag;
 	StateTreeAI->SendStateTreeEvent(Event);
 }
+
 
 // ETeamAttitude::Type ABSAIController::GetTeamAttitudeTowards(const AActor& Other) const
 // {
@@ -189,9 +194,8 @@ void ABSAIController::OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus Stimu
 		}
 		if (Stimulus.WasSuccessfullySensed())
 		{
-			StopMovement();
 			EnemyCharacter->SetLastKnownTargetLocation(Stimulus.StimulusLocation);
-			TurnTowardsStimulus(EnemyCharacter,Stimulus.StimulusLocation);
+			SendStateTreeEvent(BSGameplayTags::Event_AI_StimulusLocationUpdated);
 		}
 		return;
 	}
@@ -205,9 +209,8 @@ void ABSAIController::OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus Stimu
 		if (Stimulus.WasSuccessfullySensed())
 		{
 			// 피격으로 위치만 알 뿐, Actor를 CombatTarget으로 지정하지 않음
-			StopMovement();
 			EnemyCharacter->SetLastKnownTargetLocation(Stimulus.StimulusLocation);
-			TurnTowardsStimulus(EnemyCharacter, Stimulus.StimulusLocation);
+			SendStateTreeEvent(BSGameplayTags::Event_AI_StimulusLocationUpdated);
 		}
 		return;
 	}
@@ -233,20 +236,20 @@ void ABSAIController::OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus Stimu
 // 	}
 // }
 
-void ABSAIController::TurnTowardsStimulus(ABSEnemyCharacter* EnemyCharacter, const FVector& StimulusLocation)
-{
-	if (!EnemyCharacter)
-	{
-		return;
-	}
-	FVector Direction = StimulusLocation - EnemyCharacter->GetActorLocation();
-	Direction.Z = 0.0f;
-	if (Direction.IsNearlyZero())
-	{
-		return;
-	}
-	EnemyCharacter->StartTurning(Direction.Rotation(), StimulusTurnSpeed);
-}
+// void ABSAIController::TurnTowardsStimulus(ABSEnemyCharacter* EnemyCharacter, const FVector& StimulusLocation)
+// {
+// 	if (!EnemyCharacter)
+// 	{
+// 		return;
+// 	}
+// 	FVector Direction = StimulusLocation - EnemyCharacter->GetActorLocation();
+// 	Direction.Z = 0.0f;
+// 	if (Direction.IsNearlyZero())
+// 	{
+// 		return;
+// 	}
+// 	EnemyCharacter->StartTurning(Direction.Rotation(), StimulusTurnSpeed);
+// }
 
 void ABSAIController::StartSightTargetTraceTimer(AActor* TraceTarget)
 {

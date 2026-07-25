@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "GameplayTagContainer.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "Utility/BSTeam.h"
 #include "BSAIController.generated.h"
@@ -37,14 +38,14 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
 	TObjectPtr<UAISenseConfig_Damage> DamageConfig;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "AI|Reaction")
-	float StimulusTurnSpeed = 360.0f;
+	// UPROPERTY(EditDefaultsOnly, Category = "AI|Reaction")
+	// float StimulusTurnSpeed = 360.0f;
 	
 	// FTimerHandle UpdateLastKnownTargetLocationTimerHandle;
 	TWeakObjectPtr<AActor> VisibleTarget;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Perception")
-	float SightTargetTraceTime = 2.0f;
+	float SightTargetTraceTime = 5.0f;
 	
 	FTimerHandle SightTargetTraceTimerHandle;
 	TWeakObjectPtr<AActor> LostSightTarget;
@@ -52,7 +53,7 @@ private:
 
 public:
 	ABSAIController();
-	void SendDeathStateTreeEvent();
+	void SendStateTreeEvent(FGameplayTag EventTag);
 	AActor* GetVisibleTarget() const { return VisibleTarget.Get(); }
 	
 	// virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const override;
@@ -67,7 +68,7 @@ protected:
 	UFUNCTION()
 	// void OnTargetPerceptionForgotten(AActor* Actor);
 	
-	void TurnTowardsStimulus(ABSEnemyCharacter* EnemyCharacter, const FVector& StimulusLocation);
+	// void TurnTowardsStimulus(ABSEnemyCharacter* EnemyCharacter, const FVector& StimulusLocation);
 	
 	void StartSightTargetTraceTimer(AActor* TraceTarget);
 	void CancelSightTargetTraceTimer();
