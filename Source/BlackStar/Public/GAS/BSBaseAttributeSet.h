@@ -67,11 +67,21 @@ public:
 
 private:
 	float CachedHPPercent = 1.0f;
+	bool bDebugHPFixed = false;
+	bool bDebugMPFixed = false;
+	bool bDebugStaminaFixed = false;
 
 public:
 	UBSBaseAttributeSet();
-
+	
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) override;
+	
+	void SetDebugHPFixed(bool bEnabled);
+	void SetDebugMPFixed(bool bEnabled);
+	void SetDebugStaminaFixed(bool bEnabled);
+	bool IsDebugHPFixed() const { return bDebugHPFixed; }
+	bool IsDebugMPFixed() const { return bDebugMPFixed; }
+	bool IsDebugStaminaFixed() const { return bDebugStaminaFixed; }
 };

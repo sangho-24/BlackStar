@@ -31,13 +31,7 @@ public class BlackStar : ModuleRules
 		});
 
 		PublicIncludePaths.AddRange(new string[] {
-			"BlackStar",
-			"BlackStar/Variant_Combat",
-			"BlackStar/Variant_Combat/AI",
-			"BlackStar/Variant_Combat/Animation",
-			"BlackStar/Variant_Combat/Gameplay",
-			"BlackStar/Variant_Combat/Interfaces",
-			"BlackStar/Variant_Combat/UI"
+			"BlackStar"
 		});
 
 		// Uncomment if you are using Slate UI

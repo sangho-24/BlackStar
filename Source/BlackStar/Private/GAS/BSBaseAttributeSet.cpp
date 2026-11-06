@@ -68,7 +68,10 @@ void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 			return;
 		}
 
-		SetCurrentHP(FMath::Clamp(GetCurrentHP() - Damage,0.0f, GetMaxHP()));
+		if (!bDebugHPFixed)
+		{
+			SetCurrentHP(FMath::Clamp(GetCurrentHP() - Damage,0.0f, GetMaxHP()));
+		}
 
 		// 피해 퍼셉션 (밀리+투사체 등 모든 피해 공통)
 		const FGameplayEffectContextHandle& Context =
@@ -97,7 +100,10 @@ void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 	
 	if (Data.EvaluatedData.Attribute == GetCurrentHPAttribute())
 	{
-		SetCurrentHP(FMath::Clamp(GetCurrentHP(), 0.0f, GetMaxHP()));
+		if (!bDebugHPFixed)
+		{
+			SetCurrentHP(FMath::Clamp(GetCurrentHP(), 0.0f, GetMaxHP()));
+		}
 		
 		AActor* TargetActor = nullptr;
 		if (Data.Target.AbilityActorInfo.IsValid())
@@ -128,11 +134,11 @@ void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 			CombatTarget->SpawnFloatingDamage(DamageMagnitude,true,false);
 		}
 	}
-	else if (Data.EvaluatedData.Attribute == GetCurrentMPAttribute())
+	else if (Data.EvaluatedData.Attribute == GetCurrentMPAttribute() && !bDebugMPFixed)
 	{
 		SetCurrentMP(FMath::Clamp(GetCurrentMP(), 0.0f, GetMaxMP()));
 	}
-	if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute())
+	if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute() && !bDebugStaminaFixed)
 	{
 		SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.0f, GetMaxStamina()));
 	}
@@ -154,4 +160,40 @@ void UBSBaseAttributeSet::PostAttributeChange(const FGameplayAttribute& Attribut
 	{
 		SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.0f, GetMaxStamina()));
 	}
+}
+
+void UBSBaseAttributeSet::SetDebugHPFixed(bool bEnabled)
+{
+#if !UE_BUILD_SHIPPING
+	bDebugHPFixed = bEnabled;
+
+	if (bEnabled)
+	{
+		SetCurrentHP(GetMaxHP());
+	}
+#endif
+}
+
+void UBSBaseAttributeSet::SetDebugMPFixed(bool bEnabled)
+{
+#if !UE_BUILD_SHIPPING
+	bDebugMPFixed = bEnabled;
+
+	if (bEnabled)
+	{
+		SetCurrentMP(GetMaxMP());
+	}
+#endif
+}
+
+void UBSBaseAttributeSet::SetDebugStaminaFixed(bool bEnabled)
+{
+#if !UE_BUILD_SHIPPING
+	bDebugStaminaFixed = bEnabled;
+
+	if (bEnabled)
+	{
+		SetCurrentStamina(GetMaxStamina());
+	}
+#endif
 }
