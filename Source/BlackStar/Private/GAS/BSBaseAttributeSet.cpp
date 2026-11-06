@@ -50,6 +50,25 @@ void UBSBaseAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 	}
 }
 
+bool UBSBaseAttributeSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data)
+{
+	if (!Super::PreGameplayEffectExecute(Data))
+	{
+		return false;
+	}
+
+	const FGameplayAttribute& Attribute = Data.EvaluatedData.Attribute;
+
+	if ((Attribute == GetCurrentHPAttribute() && bDebugHPFixed) ||
+		(Attribute == GetCurrentMPAttribute() && bDebugMPFixed) ||
+		(Attribute == GetCurrentStaminaAttribute() && bDebugStaminaFixed))
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
 	Super::PostGameplayEffectExecute(Data);
@@ -134,11 +153,11 @@ void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCall
 			CombatTarget->SpawnFloatingDamage(DamageMagnitude,true,false);
 		}
 	}
-	else if (Data.EvaluatedData.Attribute == GetCurrentMPAttribute() && !bDebugMPFixed)
+	else if (Data.EvaluatedData.Attribute == GetCurrentMPAttribute())
 	{
 		SetCurrentMP(FMath::Clamp(GetCurrentMP(), 0.0f, GetMaxMP()));
 	}
-	if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute() && !bDebugStaminaFixed)
+	if (Data.EvaluatedData.Attribute == GetCurrentStaminaAttribute())
 	{
 		SetCurrentStamina(FMath::Clamp(GetCurrentStamina(), 0.0f, GetMaxStamina()));
 	}
