@@ -56,6 +56,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
 	FGameplayAttributeData Defense;
 	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, Defense)
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats")
+	FGameplayAttributeData DamageReduction;
+	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, DamageReduction)
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes|Meta")
+	FGameplayAttributeData IncomingDamage;
+	ATTRIBUTE_ACCESSORS(UBSBaseAttributeSet, IncomingDamage)
 
 private:
 	float CachedHPPercent = 1.0f;

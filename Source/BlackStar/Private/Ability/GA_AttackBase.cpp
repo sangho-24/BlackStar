@@ -16,7 +16,6 @@
 #include "Interface/ICombatInterface.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utility/BSGameplayTags.h"
-#include "Perception/AISense_Damage.h"
 #include "Perception/AISense_Hearing.h"
 #include "Utility/BSTeam.h"
 
@@ -289,18 +288,11 @@ void UGA_AttackBase::ApplyMeleeDamage(AActor *TargetActor, const FHitResult &Hit
 	}
 	FinalDamage *= ActiveTraceData.DamageMultiplier;
 
-	SpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_Damage, -FinalDamage);
+	SpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_Damage, FMath::Max(FinalDamage, 0.0f));
+	SpecHandle.Data->AddDynamicAssetTag(ActiveTraceData.HitReactionData.DamageTypeTag);
 	SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 
 	// ===== 퍼셉션
-	UAISense_Damage::ReportDamageEvent(
-	TargetActor,	// WorldContextObject
-	TargetActor,	// DamagedActor
-	CurrentActorInfo->AvatarActor.Get(),
-	FinalDamage,
-	CurrentActorInfo->AvatarActor->GetActorLocation(),
-	HitResult.ImpactPoint);
-	
 	UAISense_Hearing::ReportNoiseEvent(
 	CurrentActorInfo->AvatarActor.Get(),
 	CurrentActorInfo->AvatarActor->GetActorLocation(),

@@ -8,6 +8,8 @@
 #include "GameplayCueInterface.h"
 #include "NiagaraComponent.h"
 #include "Utility/BSGameplayTags.h"
+#include "Utility/BSTeam.h"
+#include "Perception/AISense_Hearing.h"
 
 ABSProjectile::ABSProjectile()
 {
@@ -78,19 +80,30 @@ void ABSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 
 	bHasHit = true;
 	ExecuteCue(HitCueTag, OtherActor, Hit);
+	UAISense_Hearing::ReportNoiseEvent(this, FVector(Hit.ImpactPoint),
+		1.0f, GetOwner(),1200.0f,FName("HitNoise"));
 	Destroy();
 }
 
 void ABSProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (bHasHit || !OtherActor || OtherActor == GetOwner())
+	if (bHasHit || !OtherActor || OtherActor == GetOwner() || OtherActor == GetInstigator())
 	{
 		return;
 	}
-
+	if (BSTeam::AreFriendly(GetOwner(), OtherActor))
+	{
+		// 아군은 통과.
+		return;
+	}
 	bHasHit = true;
 	const FGameplayEffectContextHandle EffectContext = ApplyDamageToTarget(OtherActor, SweepResult);
 	ExecuteCue(OverlapCueTag, OtherActor, SweepResult, EffectContext);
+	
+	const FVector NoiseLocation = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
+	UAISense_Hearing::ReportNoiseEvent(this, NoiseLocation,
+		1.0f, GetOwner(),1200.0f,FName("HitNoise"));
+	
 	Destroy();
 }
 
@@ -128,7 +141,11 @@ FGameplayEffectContextHandle ABSProjectile::ApplyDamageToTarget(AActor* TargetAc
 	}
 	FinalDamage *= DamageMultiplier;
 
-	SpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_Damage, -FinalDamage);
+	SpecHandle.Data->SetSetByCallerMagnitude(BSGameplayTags::Data_Damage, FMath::Max(FinalDamage, 0.0f));
+	if (HitReactionData.DamageTypeTag.IsValid())
+	{
+		SpecHandle.Data->AddDynamicAssetTag(HitReactionData.DamageTypeTag);
+	}
 	SpecSourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 	return ContextHandle;
 }

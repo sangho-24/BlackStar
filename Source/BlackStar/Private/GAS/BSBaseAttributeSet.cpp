@@ -2,6 +2,7 @@
 #include "GAS/BSBaseAttributeSet.h"
 #include "GameplayEffectExtension.h"
 #include "Interface/ICombatInterface.h"
+#include "Perception/AISense_Damage.h"
 
 UBSBaseAttributeSet::UBSBaseAttributeSet()
 {
@@ -15,6 +16,8 @@ UBSBaseAttributeSet::UBSBaseAttributeSet()
 	InitMagicPower(0.0f);
 	InitAttackPower(0.0f);
 	InitDefense(0.0f);
+	InitDamageReduction(0.0f);
+	InitIncomingDamage(0.0f);
 }
 
 void UBSBaseAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -41,12 +44,57 @@ void UBSBaseAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 	{
 		NewValue = FMath::Max(NewValue, 1.0f);
 	}
+	else if (Attribute == GetDamageReductionAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, 100.0f);
+	}
 }
 
 void UBSBaseAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
 	Super::PostGameplayEffectExecute(Data);
 
+	if (Data.EvaluatedData.Attribute == GetIncomingDamageAttribute())
+	{
+		const float Damage = FMath::Max(GetIncomingDamage(), 0.0f);
+		// 임시 값을 먼저 비움.
+		SetIncomingDamage(0.0f); 
+
+		AActor* TargetActor = Data.Target.GetAvatarActor();
+		ICombatInterface* CombatTarget = Cast<ICombatInterface>(TargetActor);
+
+		if (!CombatTarget || CombatTarget->IsDead() || Damage <= 0.0f)
+		{
+			return;
+		}
+
+		SetCurrentHP(FMath::Clamp(GetCurrentHP() - Damage,0.0f, GetMaxHP()));
+
+		// 피해 퍼셉션 (밀리+투사체 등 모든 피해 공통)
+		const FGameplayEffectContextHandle& Context =
+			Data.EffectSpec.GetContext();
+
+		AActor* Attacker = Context.GetOriginalInstigator();
+
+		if (IsValid(Attacker))
+		{
+			const FHitResult* Hit = Context.GetHitResult();
+			const FVector HitLocation = Hit ? FVector(Hit->ImpactPoint) : TargetActor->GetActorLocation();
+			UAISense_Damage::ReportDamageEvent(TargetActor, TargetActor, Attacker,
+				Damage, Attacker->GetActorLocation(), HitLocation);
+		}
+
+		// 방어력을 반영한 피해를 표시.
+		CombatTarget->SpawnFloatingDamage(Damage, false, false);
+
+		if (GetCurrentHP() <= 0.0f)
+		{
+			CombatTarget->Death(Data.EffectSpec.GetContext().GetOriginalInstigator());
+		}
+
+		return;
+	}
+	
 	if (Data.EvaluatedData.Attribute == GetCurrentHPAttribute())
 	{
 		SetCurrentHP(FMath::Clamp(GetCurrentHP(), 0.0f, GetMaxHP()));

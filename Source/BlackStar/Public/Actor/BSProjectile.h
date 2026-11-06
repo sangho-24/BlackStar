@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
+#include "Ability/BSAbilityTypes.h"
 #include "BSProjectile.generated.h"
 
 class UNiagaraComponent;
@@ -45,6 +46,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Damage")
 	float BaseDamage = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	FBSHitReactionData HitReactionData;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Cue")
 	FGameplayTag HitCueTag;
