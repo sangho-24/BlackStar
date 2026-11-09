@@ -3,6 +3,7 @@
 #include "GAS/BSAbilitySystemComponent.h"
 #include "Character/BSBaseCharacter.h"
 #include "Character/BSEnemyCharacter.h"
+#include "Character/BSNormalEnemyCharacter.h"
 #include "StateTreeExecutionContext.h"
 #include "StateTreeExecutionTypes.h"
 #include "StateTreeAsyncExecutionContext.h"
@@ -158,7 +159,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::EnterState(
 		return EStateTreeRunStatus::Failed;
 	}
 
-	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter)
 	{
 		return EStateTreeRunStatus::Failed;
@@ -211,7 +212,7 @@ void FSTTask_MoveToLastKnownTargetLocation::ExitState(
 
 EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstanceDataType& InstanceData)
 {
-	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter)
 	{
 		return EStateTreeRunStatus::Failed;
@@ -268,7 +269,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMove(FInstance
 EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToActor(
 	FInstanceDataType& InstanceData, AActor* TargetActor)
 {
-	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter || !TargetActor)
 	{
 		return EStateTreeRunStatus::Failed;
@@ -305,7 +306,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToActor(
 EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation(
 	FInstanceDataType& InstanceData, const FVector& GoalLocation)
 {
-	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter)
 	{
 		return EStateTreeRunStatus::Failed;
@@ -347,7 +348,7 @@ EStateTreeRunStatus FSTTask_MoveToLastKnownTargetLocation::RequestMoveToLocation
 
 bool FSTTask_MoveToLastKnownTargetLocation::HasReachedLocation(const FInstanceDataType& InstanceData, const FVector& GoalLocation)
 {
-	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	const ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter)
 	{
 		return false;
@@ -439,7 +440,7 @@ FSTTask_RandomPatrol::FSTTask_RandomPatrol()
 EStateTreeRunStatus FSTTask_RandomPatrol::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
     FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-    ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+    ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
     if (!EnemyCharacter || EnemyCharacter->IsDead())
     {
         return EStateTreeRunStatus::Failed;
@@ -522,7 +523,7 @@ EStateTreeRunStatus FSTTask_RandomPatrol::EnterState(FStateTreeExecutionContext&
 EStateTreeRunStatus FSTTask_RandomPatrol::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter || EnemyCharacter->IsDead() || !InstanceData.bHasPatrolDestination)
 	{
 		return EStateTreeRunStatus::Failed;
@@ -574,7 +575,7 @@ FSTTask_RoutePatrol::FSTTask_RoutePatrol()
 EStateTreeRunStatus FSTTask_RoutePatrol::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter || EnemyCharacter->IsDead() || !EnemyCharacter->HasPatrolRoute())
 	{
 		return EStateTreeRunStatus::Failed;
@@ -619,7 +620,7 @@ EStateTreeRunStatus FSTTask_RoutePatrol::EnterState(FStateTreeExecutionContext& 
 EStateTreeRunStatus FSTTask_RoutePatrol::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-	ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter || EnemyCharacter->IsDead() || !EnemyCharacter->HasPatrolRoute() || !InstanceData.bMoveRequested)
 	{
 		return EStateTreeRunStatus::Failed;
@@ -671,34 +672,34 @@ FSTTask_RotateToLastKnownTargetLocation::FSTTask_RotateToLastKnownTargetLocation
 EStateTreeRunStatus FSTTask_RotateToLastKnownTargetLocation::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	FInstanceDataType& Data = Context.GetInstanceData(*this);
-	ABSEnemyCharacter* Enemy = Data.EnemyCharacter;
-	if (!Enemy || !Enemy->HasLastKnownTargetLocation())
+	ABSNormalEnemyCharacter* EnemyCharacter = Data.EnemyCharacter;
+	if (!EnemyCharacter || !EnemyCharacter->HasLastKnownTargetLocation())
 	{
 		return EStateTreeRunStatus::Failed;
 	}
 	FVector TargetLocation = FVector::ZeroVector;
-	if (AActor* CombatTarget = Enemy->GetCombatTarget())
+	if (AActor* CombatTarget = EnemyCharacter->GetCombatTarget())
 	{
 		TargetLocation = CombatTarget->GetActorLocation();
 	}
-	else if (Enemy->HasLastKnownTargetLocation())
+	else if (EnemyCharacter->HasLastKnownTargetLocation())
 	{
-		TargetLocation = Enemy->GetLastKnownTargetLocation();
+		TargetLocation = EnemyCharacter->GetLastKnownTargetLocation();
 	}
 	else
 	{
 		return EStateTreeRunStatus::Failed;
 	}
 	
-	FVector Direction = TargetLocation - Enemy->GetActorLocation();
+	FVector Direction = TargetLocation - EnemyCharacter->GetActorLocation();
 	Direction.Z = 0.0f;
 	if (Direction.IsNearlyZero())
 	{
 		return EStateTreeRunStatus::Succeeded;
 	}
 
-	Enemy->StartTurning(Direction.Rotation(), Data.TurnSpeed);
-	return Enemy->IsTurning() ? EStateTreeRunStatus::Running : EStateTreeRunStatus::Succeeded;
+	EnemyCharacter->StartTurning(Direction.Rotation(), Data.TurnSpeed);
+	return EnemyCharacter->IsTurning() ? EStateTreeRunStatus::Running : EStateTreeRunStatus::Succeeded;
 }
 
 EStateTreeRunStatus FSTTask_RotateToLastKnownTargetLocation::Tick(FStateTreeExecutionContext& Context, float DeltaTime) const

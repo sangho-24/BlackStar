@@ -9,6 +9,7 @@
 
 class ABSBaseCharacter;
 class ABSEnemyCharacter;
+class ABSNormalEnemyCharacter;
 class AAIController;
 class UBSAbilitySystemComponent;
 
@@ -67,7 +68,7 @@ struct FSTTask_MoveToLastKnownTargetLocationInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+	TObjectPtr<ABSNormalEnemyCharacter> EnemyCharacter = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
 	float MovementSpeed = 200.0f;
@@ -138,6 +139,7 @@ struct FSTTask_WaitRandom : public FStateTreeTaskCommonBase
 };
 
 // ===== 태그 없어질때까지 대기 =====
+// 보스도 사용할 수 있으므로 공용 유지, 나머지는 일반몹 전용으로 변경
 USTRUCT()
 struct FSTTask_WaitForGameplayTagRemovedInstanceData
 {
@@ -173,7 +175,7 @@ struct FSTTask_RandomPatrolInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+	TObjectPtr<ABSNormalEnemyCharacter> EnemyCharacter = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
 	float PatrolSpeed = 120.0f;
@@ -218,7 +220,7 @@ struct FSTTask_RoutePatrolInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+	TObjectPtr<ABSNormalEnemyCharacter> EnemyCharacter = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
 	float PatrolSpeed = 120.0f;
@@ -259,7 +261,7 @@ struct FSTTask_RotateToLastKnownTargetLocationInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+	TObjectPtr<ABSNormalEnemyCharacter> EnemyCharacter = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Parameter")
 	float TurnSpeed = 360.0f;

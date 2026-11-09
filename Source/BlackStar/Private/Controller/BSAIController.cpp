@@ -5,7 +5,8 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Damage.h"
-#include "Character/BSEnemyCharacter.h"
+#include "Character/BSNormalEnemyCharacter.h"
+#include "TimerManager.h"
 
 ABSAIController::ABSAIController()
 {
@@ -38,83 +39,53 @@ ABSAIController::ABSAIController()
 	BSPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ABSAIController::OnTargetPerceptionUpdated);
 	// BSPerceptionComponent->OnTargetPerceptionForgotten.AddDynamic(this, &ABSAIController::OnTargetPerceptionForgotten);
 	SetPerceptionComponent(*BSPerceptionComponent);
-
-	// 스테이트 트리
-	StateTreeAI = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeAI"));
-
-	bStartAILogicOnPossess = false;
-	StateTreeAI->SetStartLogicAutomatically(false);
-	bAttachToPawn = true;
 }
 
-void ABSAIController::SendStateTreeEvent(FGameplayTag EventTag)
-{
-	if (!StateTreeAI || !EventTag.IsValid())
-	{
-		return;
-	}
-	FStateTreeEvent Event;
-	Event.Tag = EventTag;
-	StateTreeAI->SendStateTreeEvent(Event);
-}
-
-
-// ETeamAttitude::Type ABSAIController::GetTeamAttitudeTowards(const AActor& Other) const
-// {
-// 	const IGenericTeamAgentInterface* OtherTeamAgent = Cast<IGenericTeamAgentInterface>(&Other);
-//
-// 	if (!OtherTeamAgent)
-// 	{
-// 		if (const APawn* OtherPawn = Cast<APawn>(&Other))
-// 		{
-// 			OtherTeamAgent = Cast<IGenericTeamAgentInterface>(OtherPawn->GetController());
-// 		}
-// 	}
-//
-// 	if (!OtherTeamAgent)
-// 	{
-// 		return ETeamAttitude::Neutral;
-// 	}
-//
-// 	return FGenericTeamId::GetAttitude(GetGenericTeamId(),OtherTeamAgent -> GetGenericTeamId());
-// }
 
 void ABSAIController::OnPossess(APawn *InPawn)
 {
 	Super::OnPossess(InPawn);
+	GetWorldTimerManager().ClearTimer(StartLogicTimerHandle);
+	StartLogicTimerHandle = GetWorldTimerManager().SetTimerForNextTick(this, &ABSAIController::StartNormalEnemyLogic);
+	
 	SetGenericTeamId(FGenericTeamId(DefaultTeamId));
 	StateTreeAI->StartLogic();
 }
 
+void ABSAIController::StartNormalEnemyLogic()
+{
+	if (Cast<ABSNormalEnemyCharacter>(GetPawn()))
+	{
+		StartEnemyLogic();
+	}
+}
+
+
 void ABSAIController::OnUnPossess()
 {
+	GetWorldTimerManager().ClearTimer(StartLogicTimerHandle);
 	GetWorldTimerManager().ClearTimer(SightTargetTraceTimerHandle);
+
 	LostSightTarget.Reset();
 	VisibleTarget.Reset();
-	
-	if (StateTreeAI)
-	{
-		StateTreeAI->StopLogic(TEXT("UnPossess"));
-	}
+
 	Super::OnUnPossess();
 }
 
 void ABSAIController::OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus Stimulus)
 {
+	if (!IsValid(Actor))
+	{
+		return;
+	}
 	const APawn* TargetPawn = Cast<APawn>(Actor);
-	const IGenericTeamAgentInterface* TargetTeamAgent =
-		TargetPawn
-			? Cast<IGenericTeamAgentInterface>(
-				TargetPawn->GetController())
-			: Cast<IGenericTeamAgentInterface>(Actor);
+	const IGenericTeamAgentInterface* TargetTeamAgent = TargetPawn
+			? Cast<IGenericTeamAgentInterface>(TargetPawn->GetController()) : Cast<IGenericTeamAgentInterface>(Actor);
 
-	const uint8 MyTeamId =
-		GetGenericTeamId().GetId();
+	const uint8 MyTeamId = GetGenericTeamId().GetId();
 
-	const uint8 TargetTeamId =
-		TargetTeamAgent
-			? TargetTeamAgent->GetGenericTeamId().GetId()
-			: FGenericTeamId::NoTeam.GetId();
+	const uint8 TargetTeamId = TargetTeamAgent
+			? TargetTeamAgent->GetGenericTeamId().GetId() : FGenericTeamId::NoTeam.GetId();
 
 	const ETeamAttitude::Type Attitude = GetTeamAttitudeTowards(*Actor);
 
@@ -130,12 +101,7 @@ void ABSAIController::OnTargetPerceptionUpdated(AActor *Actor, FAIStimulus Stimu
 			? *GetNameSafe(TargetPawn->GetController())
 			: TEXT("No Pawn"));
 	// =====
-	if (!Actor)
-	{
-		return;
-	}
-	
-	ABSEnemyCharacter* EnemyCharacter = Cast<ABSEnemyCharacter>(GetPawn());
+	ABSNormalEnemyCharacter* EnemyCharacter = Cast<ABSNormalEnemyCharacter>(GetPawn());
 	if (!EnemyCharacter || EnemyCharacter->IsDead())
 	{
 		return;
@@ -278,7 +244,7 @@ void ABSAIController::FinishSightTargetTraceTimer()
 	AActor* LostTarget = LostSightTarget.Get();
 	LostSightTarget.Reset();
 	
-	ABSEnemyCharacter* EnemyCharacter = Cast<ABSEnemyCharacter>(GetPawn());
+	ABSNormalEnemyCharacter* EnemyCharacter = Cast<ABSNormalEnemyCharacter>(GetPawn());
 	if (!EnemyCharacter || EnemyCharacter->IsDead())
 	{
 		return;

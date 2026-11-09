@@ -7,7 +7,9 @@
 #include "GameplayTagContainer.h"
 #include "BSAIStateTreeConditions.generated.h"
 
+
 class ABSEnemyCharacter;
+class ABSNormalEnemyCharacter;
 
 // ===== 시야에 있는지 =====
 USTRUCT()
@@ -16,7 +18,7 @@ struct FSTCondition_HasVisibleCombatTargetInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+	TObjectPtr<ABSNormalEnemyCharacter> EnemyCharacter = nullptr;
 };
 
 USTRUCT(meta = (DisplayName = "Has Visible Combat Target", Category = "BlackStar|AI"))
@@ -91,7 +93,7 @@ struct FSTCondition_HasLastKnownTargetLocationInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+	TObjectPtr<ABSNormalEnemyCharacter> EnemyCharacter = nullptr;
 };
 
 USTRUCT(meta = (DisplayName = "Has Last Known Target Location", Category = "BlackStar|AI"))
@@ -141,7 +143,7 @@ struct FSTCondition_HasPatrolRouteInstanceData
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, Category = "Context")
-	TObjectPtr<ABSEnemyCharacter> EnemyCharacter = nullptr;
+	TObjectPtr<ABSNormalEnemyCharacter> EnemyCharacter = nullptr;
 };
 
 USTRUCT(meta = (DisplayName = "Has Patrol Route", Category = "BlackStar|AI"))

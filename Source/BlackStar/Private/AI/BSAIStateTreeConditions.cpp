@@ -1,6 +1,7 @@
 #include "AI/BSAIStateTreeConditions.h"
 
 #include "Character/BSEnemyCharacter.h"
+#include "Character/BSNormalEnemyCharacter.h"
 #include "Controller/BSAIController.h"
 #include "StateTreeExecutionContext.h"
 #include "Components/CapsuleComponent.h"
@@ -10,7 +11,7 @@
 bool FSTCondition_HasVisibleCombatTarget::TestCondition(FStateTreeExecutionContext& Context) const
 {
 	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	const ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 	if (!EnemyCharacter || EnemyCharacter->IsDead())
 	{
 		return false;
@@ -117,7 +118,7 @@ bool FSTCondition_HasCombatTarget::TestCondition(FStateTreeExecutionContext& Con
 bool FSTCondition_HasLastKnownTargetLocation::TestCondition(FStateTreeExecutionContext& Context) const
 {
 	const FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
-	const ABSEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
+	const ABSNormalEnemyCharacter* EnemyCharacter = InstanceData.EnemyCharacter;
 
 	return EnemyCharacter 
 		&& !EnemyCharacter->IsDead() 

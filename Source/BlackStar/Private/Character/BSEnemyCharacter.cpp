@@ -1,81 +1,12 @@
 #include "Character/BSEnemyCharacter.h"
+#include "Controller/BSEnemyAIControllerBase.h"
 
-#include "GAS/BSAbilitySystemComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/WidgetComponent.h"
-#include "GAS/BSBaseAttributeSet.h"
-#include "UI/NameplateWidget.h"
-#include "Utility/BSGameplayTags.h"
-#include "Controller/BSAIController.h"
-#include "AI/BSPatrolRoute.h"
-
-ABSEnemyCharacter::ABSEnemyCharacter()
+AActor* ABSEnemyCharacter::GetCombatTarget() const
 {
-	NameplateWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("NameplateWidgetComponent"));
-
-	// Mesh보다 Capsule에 붙이는 쪽이 메시 회전/오프셋 영향을 덜 받음
-	NameplateWidgetComponent->SetupAttachment(GetCapsuleComponent());
-	NameplateWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	NameplateWidgetComponent->SetDrawSize(NameplateSize);
-	NameplateWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	return IsValid(CombatTarget) ? CombatTarget.Get() : nullptr;
 }
 
-void ABSEnemyCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-
-	PatrolOrigin = GetActorLocation();
-	InitializePatrolPoint();
-	InitializeNameplate();
-}
-
-void ABSEnemyCharacter::InitializeNameplate()
-{
-	if (NameplateWidgetComponent)
-	{
-		const float CapsuleHalfHeight =
-			GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-
-		NameplateWidgetComponent->SetRelativeLocation(
-			FVector(0.0f, 0.0f, CapsuleHalfHeight * NameplateHeight));
-
-		if (NameplateWidgetClass)
-		{
-			NameplateWidgetComponent->SetWidgetClass(NameplateWidgetClass);
-			NameplateWidgetComponent->InitWidget();
-		}
-
-		RefreshNameplate();
-
-		if (AbilitySystemComponent)
-		{
-			CurrentHPDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-																UBSBaseAttributeSet::GetCurrentHPAttribute())
-										  .AddUObject(this, &ABSEnemyCharacter::OnHPChanged);
-
-			MaxHPDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-															UBSBaseAttributeSet::GetMaxHPAttribute())
-									  .AddUObject(this, &ABSEnemyCharacter::OnHPChanged);
-		}
-	}
-}
-
-void ABSEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	if (AbilitySystemComponent)
-	{
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-								  UBSBaseAttributeSet::GetCurrentHPAttribute())
-			.Remove(CurrentHPDelegateHandle);
-
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-								  UBSBaseAttributeSet::GetMaxHPAttribute())
-			.Remove(MaxHPDelegateHandle);
-	}
-	Super::EndPlay(EndPlayReason);
-}
-
-void ABSEnemyCharacter::SetCombatTarget(AActor *NewTarget)
+void ABSEnemyCharacter::SetCombatTarget(AActor* NewTarget)
 {
 	CombatTarget = Cast<ABSBaseCharacter>(NewTarget);
 }
@@ -85,154 +16,39 @@ void ABSEnemyCharacter::ClearCombatTarget()
 	CombatTarget = nullptr;
 }
 
-void ABSEnemyCharacter::SetLastKnownTargetLocation(const FVector& Location)
-{
-	LastKnownTargetLocation = Location;
-	bHasLastKnownTargetLocation = true;
-}
-
-void ABSEnemyCharacter::ClearLastKnownTargetLocation()
-{
-	LastKnownTargetLocation = FVector::ZeroVector;
-	bHasLastKnownTargetLocation = false;
-}
-
-bool ABSEnemyCharacter::HasPatrolRoute() const
-{
-	return IsValid(PatrolRoute) && PatrolRoute->GetNumPatrolPoints() > 0;
-}
-
-FVector ABSEnemyCharacter::GetCurrentPatrolPointLocation() const
-{
-	if (!HasPatrolRoute())
-	{
-		return GetActorLocation();
-	}
-	return PatrolRoute->GetPatrolPointLocation(CurrentPatrolPointIndex);
-}
-
-void ABSEnemyCharacter::InitializePatrolPoint()
-{
-	CurrentPatrolPointIndex = 0;
-	PatrolDirection = 1;
-	if (!HasPatrolRoute())
-	{
-		return;
-	}
-	const int32 ClosestIndex = PatrolRoute->FindClosestPatrolPointIndex(GetActorLocation());
-	if (ClosestIndex != INDEX_NONE)
-	{
-		CurrentPatrolPointIndex = ClosestIndex;
-	}
-}
-
-void ABSEnemyCharacter::AdvancePatrolPoint()
-{
-	if (!HasPatrolRoute())
-	{
-		CurrentPatrolPointIndex = 0;
-		PatrolDirection = 1;
-		return;
-	}
-
-	const int32 PointCount = PatrolRoute->GetNumPatrolPoints();
-
-	if (PointCount <= 1)
-	{
-		CurrentPatrolPointIndex = 0;
-		PatrolDirection = 1;
-		return;
-	}
-
-	if (PatrolRoute->GetPatrolMode() == EBSPatrolRouteMode::Loop)
-	{
-		CurrentPatrolPointIndex = (CurrentPatrolPointIndex + 1) % PointCount;
-	}
-	else if (PatrolRoute->GetPatrolMode() == EBSPatrolRouteMode::PingPong)
-	{
-		CurrentPatrolPointIndex += PatrolDirection;
-
-		if (CurrentPatrolPointIndex >= PointCount)
-		{
-			CurrentPatrolPointIndex = PointCount - 2;
-			PatrolDirection = -1;
-		}
-		else if (CurrentPatrolPointIndex < 0)
-		{
-			CurrentPatrolPointIndex = 1;
-			PatrolDirection = 1;
-		}
-	}
-}
-
 void ABSEnemyCharacter::ApplyHitReaction(AActor* Attacker, const FHitResult& HitResult, const FBSHitReactionData& ReactionData)
 {
-	Super::ApplyHitReaction(Attacker, HitResult, ReactionData);
-	AController *CurrentController = GetController();
-	if (ABSAIController *AIController = Cast<ABSAIController>(CurrentController))
+	if (IsDead())
 	{
-		AIController->SendStateTreeEvent(BSGameplayTags::Event_Character_HitReaction);
+		return;
+	}
+
+	Super::ApplyHitReaction(Attacker, HitResult, ReactionData);
+
+	if (auto* AI = Cast<ABSEnemyAIControllerBase>(GetController()))
+	{
+		AI->HandleEnemyHitReaction();
 	}
 }
 
-AActor* ABSEnemyCharacter::GetCombatTarget() const
-{
-	return CombatTarget;
-}
-
-void ABSEnemyCharacter::OnDeathStarted(AActor *Killer)
+void ABSEnemyCharacter::OnDeathStarted(AActor* Killer)
 {
 	Super::OnDeathStarted(Killer);
 
-	if (NameplateWidgetComponent)
+	if (auto* AI = Cast<ABSEnemyAIControllerBase>(GetController()))
 	{
-		NameplateWidgetComponent->SetVisibility(false);
+		AI->HandleEnemyDeath();
 	}
-	// 여기서 경험치, 드롭, AI 정리 등을 처리할 수 있음.
-	AController *CurrentController = GetController();
 
-	if (ABSAIController *AIController = Cast<ABSAIController>(CurrentController))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ai controller connected"));
-		AIController->SendStateTreeEvent(BSGameplayTags::Event_Character_Death);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ABSAIController cast failed"));
-	}
+	ClearCombatTarget();
 }
 
-void ABSEnemyCharacter::OnDeathFinished(AActor *Killer)
+void ABSEnemyCharacter::OnDeathFinished(AActor* Killer)
 {
 	Super::OnDeathFinished(Killer);
-	SetLifeSpan(CorpseLifeTime);
-}
 
-void ABSEnemyCharacter::RefreshNameplate()
-{
-	if (!NameplateWidgetComponent)
+	if (CorpseLifeTime > 0.0f)
 	{
-		return;
+		SetLifeSpan(CorpseLifeTime);
 	}
-
-	UNameplateWidget *Nameplate = Cast<UNameplateWidget>(NameplateWidgetComponent->GetUserWidgetObject());
-
-	if (!Nameplate)
-	{
-		return;
-	}
-
-	Nameplate->UpdateName(EnemyName);
-
-	if (AttributeSet)
-	{
-		Nameplate->UpdateHP(
-			AttributeSet->GetCurrentHP(),
-			AttributeSet->GetMaxHP());
-	}
-}
-
-void ABSEnemyCharacter::OnHPChanged(const FOnAttributeChangeData &Data)
-{
-	RefreshNameplate();
 }
