@@ -48,8 +48,8 @@ void ABSAIController::OnPossess(APawn *InPawn)
 	GetWorldTimerManager().ClearTimer(StartLogicTimerHandle);
 	StartLogicTimerHandle = GetWorldTimerManager().SetTimerForNextTick(this, &ABSAIController::StartNormalEnemyLogic);
 	
-	SetGenericTeamId(FGenericTeamId(DefaultTeamId));
-	StateTreeAI->StartLogic();
+	// SetGenericTeamId(FGenericTeamId(DefaultTeamId));
+	// StateTreeAI->StartLogic();
 }
 
 void ABSAIController::StartNormalEnemyLogic()

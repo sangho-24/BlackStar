@@ -206,15 +206,14 @@ EPlayerEvadeDirection UGA_PlayerEvade::GetEvadeAnimDirection(const class ABSPlay
 	{
 		return EPlayerEvadeDirection::Front;
 	}
-
-	if (FMath::Abs(MoveInput.X) > FMath::Abs(MoveInput.Y))
+	
+	// 락온 중에는 대각선도 좌우 모션을 우선 사용. 패드의 작은 움직임(0.1)은 무시
+	if (FMath::Abs(MoveInput.X) > 0.1f)
 	{
-		return MoveInput.X > 0.0f
-			? EPlayerEvadeDirection::Right : EPlayerEvadeDirection::Left;
+		return MoveInput.X > 0.0f ? EPlayerEvadeDirection::Right : EPlayerEvadeDirection::Left;
 	}
 
-	return MoveInput.Y > 0.0f
-		? EPlayerEvadeDirection::Front : EPlayerEvadeDirection::Back;
+	return MoveInput.Y > 0.0f ? EPlayerEvadeDirection::Front : EPlayerEvadeDirection::Back;
 }
 
 FName UGA_PlayerEvade::GetEvadeSectionName(EPlayerEvadeDirection Direction) const

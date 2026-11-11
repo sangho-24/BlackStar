@@ -1,9 +1,11 @@
 #include "Character/BSPlayerCharacter.h"
+#include "Character/BSEnemyCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Component/BSWeaponComponent.h"
+#include "Components/WidgetComponent.h"
 #include "EnhancedInputComponent.h"
 #include "GAS/BSAbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -45,13 +47,23 @@ ABSPlayerCharacter::ABSPlayerCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 	
-	WeaponComponent =CreateDefaultSubobject<UBSWeaponComponent>(TEXT("WeaponComponent"));
+	WeaponComponent = CreateDefaultSubobject<UBSWeaponComponent>(TEXT("WeaponComponent"));
+	
+	LockOnIndicatorComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("LockOnIndicatorComponent"));
+	LockOnIndicatorComponent->SetupAttachment(RootComponent);
+	LockOnIndicatorComponent->SetAbsolute(true, false, false);
+	LockOnIndicatorComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	LockOnIndicatorComponent->SetDrawSize(FVector2D(24.0f, 24.0f));
+	LockOnIndicatorComponent->SetPivot(FVector2D(0.5f, 0.5f));
+	LockOnIndicatorComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LockOnIndicatorComponent->SetGenerateOverlapEvents(false);
+	LockOnIndicatorComponent->SetVisibility(false);
 }
 
 void ABSPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	if (CameraBoom)
 	{
 		DesiredArmLength = CameraBoom->TargetArmLength;
@@ -72,22 +84,28 @@ void ABSPlayerCharacter::BeginPlay()
 	}
 }
 
+void ABSPlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ClearCombatTarget();
+	Super::EndPlay(EndPlayReason);
+}
+
 void ABSPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 락온 카메라 보간
-	if (LockOnTarget && Controller)
+	// 락온 카메라 보간.
+	if (bLockOnActive && IsValid(LockOnTarget) && Controller)
 	{
 		const FVector ToTarget = LockOnTarget->GetActorLocation() - GetActorLocation();
+
 		if (!ToTarget.IsNearlyZero())
 		{
 			FRotator TargetRotation = ToTarget.Rotation();
 			TargetRotation.Pitch -= 30.0f;
 
-			const FRotator CurrentRotation = Controller->GetControlRotation();
 			const FRotator NewRotation = FMath::RInterpTo(
-				CurrentRotation,
+				Controller->GetControlRotation(),
 				TargetRotation,
 				DeltaTime,
 				LockOnInterpSpeed);
@@ -95,17 +113,28 @@ void ABSPlayerCharacter::Tick(float DeltaTime)
 			Controller->SetControlRotation(NewRotation);
 		}
 	}
-	// 카메라 줌 보간
-	if (bIsZoomInterpolating && CameraBoom)
-	{
-		CameraBoom->TargetArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, DesiredArmLength, DeltaTime, ZoomInterpSpeed);
-		if (FMath::IsNearlyEqual(CameraBoom->TargetArmLength, DesiredArmLength, 1.0f))
+
+		// 카메라 줌 보간.
+		if (bIsZoomInterpolating && CameraBoom)
 		{
-			CameraBoom->TargetArmLength = DesiredArmLength;
-			bIsZoomInterpolating = false;
+			CameraBoom->TargetArmLength = FMath::FInterpTo(
+				CameraBoom->TargetArmLength,
+				DesiredArmLength,
+				DeltaTime,
+				ZoomInterpSpeed);
+
+			if (FMath::IsNearlyEqual(
+					CameraBoom->TargetArmLength,
+					DesiredArmLength,
+					1.0f))
+			{
+				CameraBoom->TargetArmLength = DesiredArmLength;
+				bIsZoomInterpolating = false;
+			}
 		}
-	}
+	UpdateLockOnIndicator();
 }
+
 
 void ABSPlayerCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
 {
@@ -199,6 +228,17 @@ void ABSPlayerCharacter::LookAction(const FInputActionValue &Value)
 
 	AddControllerYawInput(LookAxisVector.X);
 	AddControllerPitchInput(LookAxisVector.Y);
+	
+	if (bLockOnActive)
+	{
+		if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+		{
+			float MouseX = 0.0f;
+			float MouseY = 0.0f;
+			PlayerController->GetInputMouseDelta(MouseX, MouseY);
+			HandleLockOnSwitchInput(MouseX);
+		}
+	}
 }
 
 void ABSPlayerCharacter::ZoomAction(const FInputActionValue &Value)
@@ -274,39 +314,29 @@ void ABSPlayerCharacter::BasicSkillAction()
 
 void ABSPlayerCharacter::LockOnAction()
 {
-	if (LockOnTarget)
+	if (bLockOnActive)
 	{
 		ClearCombatTarget();
 		return;
 	}
 	SetCombatTarget(FindBestLockOnTarget());
-	if (LockOnTarget)
-	{
-		StartLockOnUpdateTimer();
-	}
 }
 
 void ABSPlayerCharacter::UpdateLockOnTarget()
 {
-	if (!LockOnTarget)
+	if (!bLockOnActive)
 	{
 		return;
 	}
 
-	if (!IsValid(LockOnTarget))
-	{
-		ClearCombatTarget();
-		return;
-	}
-
-	if (LockOnTarget->IsDead())
+	if (IsDead() || !IsLockOnTargetable(LockOnTarget))
 	{
 		ClearCombatTarget();
 		return;
 	}
 
-	const float Distance = FVector::Dist(GetActorLocation(), LockOnTarget->GetActorLocation());
-	if (Distance > LockOnSearchRadius)
+	const float DistanceSq = FVector::DistSquared(GetActorLocation(), LockOnTarget->GetActorLocation());
+	if (DistanceSq > FMath::Square(LockOnSearchRadius))
 	{
 		ClearCombatTarget();
 		return;
@@ -359,8 +389,10 @@ ABSBaseCharacter *ABSPlayerCharacter::FindBestLockOnTarget() const
 		return nullptr;
 	}
 
-	const FVector ViewLocation = FollowCamera ? FollowCamera->GetComponentLocation() : GetActorLocation();
-	const FVector ViewForward = FollowCamera ? FollowCamera->GetForwardVector() : GetActorForwardVector();
+	const FVector ViewLocation = FollowCamera 
+		? FollowCamera->GetComponentLocation() : GetActorLocation();
+	const FVector ViewForward = FollowCamera 
+		? FollowCamera->GetForwardVector() : GetActorForwardVector();
 	const float MinDot = FMath::Cos(FMath::DegreesToRadians(LockOnMaxAngle));
 
 	TArray<FLockOnCandidate> Candidates;
@@ -423,16 +455,16 @@ ABSBaseCharacter *ABSPlayerCharacter::FindBestLockOnTarget() const
 
 bool ABSPlayerCharacter::IsLockOnTargetable(ABSBaseCharacter *Candidate) const
 {
-	if (!Candidate || Candidate == this)
+	if (!IsValid(Candidate) || Candidate == this || Candidate->IsDead())
 	{
 		return false;
 	}
 
-	if (Candidate->IsDead())
+	if (!Cast<ABSEnemyCharacter>(Candidate))
 	{
 		return false;
 	}
-
+	
 	if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Candidate))
 	{
 		return false;
@@ -521,9 +553,243 @@ void ABSPlayerCharacter::StopEvadeMontageTail()
 	}
 }
 
+void ABSPlayerCharacter::UpdateLockOnIndicator()
+{
+	if (!LockOnIndicatorComponent)
+	{
+		return;
+	}
+	// 페이드아웃이 끝날 때까지 기존 표시를 유지.
+	if (!bLockOnActive && bPlayingUnlockAnimation)
+	{
+		return;
+	}
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	const bool bShow = PlayerController && bLockOnActive && IsValid(LockOnTarget) && !LockOnTarget->IsDead() && !IsDead();
+	LockOnIndicatorComponent->SetVisibility(bShow);
+	if (!bShow)
+	{
+		return;
+	}
+	LockOnIndicatorComponent->SetOwnerPlayer(PlayerController->GetLocalPlayer());
+	LockOnIndicatorComponent->SetWorldLocation(LockOnTarget->GetActorLocation() + LockOnIndicatorOffset);
+}
+
+void ABSPlayerCharacter::HandleLockOnSwitchInput(float MouseDeltaX)
+{
+	if (!bLockOnActive || !IsValid(LockOnTarget))
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	if (!PlayerController || PlayerController->bShowMouseCursor || PlayerController->IsLookInputIgnored())
+	{
+		return;
+	}
+
+	// 매우 작은 흔들림은 무시.
+	if (FMath::Abs(MouseDeltaX) <= 0.01f)
+	{
+		return;
+	}
+
+	const double Now = FPlatformTime::Seconds();
+
+	// 초기화 직후나, 일정 시간 움직이지 않았을 경우.
+	const bool bNewGesture = LastLockOnSwitchInputTime < 0.0 
+		|| Now - LastLockOnSwitchInputTime >= LockOnSwitchNeutralTime;
+
+	if (bNewGesture)
+	{
+		bLockOnSwitchConsumed = false;
+		LockOnSwitchAccumulated = 0.0f;
+		LockOnGestureStartTime = Now;
+	}
+
+	LastLockOnSwitchInputTime = Now;
+
+	// 한 번의 연속 움직임에서는 한 번만 전환.
+	if (bLockOnSwitchConsumed || Now < NextLockOnSwitchTime)
+	{
+		return;
+	}
+
+	const bool bDirectionChanged = !FMath::IsNearlyZero(LockOnSwitchAccumulated) 
+		&& FMath::Sign(LockOnSwitchAccumulated) != FMath::Sign(MouseDeltaX);
+
+	const bool bWindowExpired = Now - LockOnGestureStartTime > LockOnSwitchInputWindow;
+
+	if (bDirectionChanged || bWindowExpired)
+	{
+		LockOnSwitchAccumulated = 0.0f;
+		LockOnGestureStartTime = Now;
+	}
+
+	LockOnSwitchAccumulated += MouseDeltaX;
+
+	if (FMath::Abs(LockOnSwitchAccumulated) < LockOnSwitchThreshold)
+	{
+		return;
+	}
+
+	const int32 Direction = LockOnSwitchAccumulated > 0.0f ? 1 : -1;
+
+	// 후보가 없어도 이번 움직임의 전환 시도는 종료.
+	bLockOnSwitchConsumed = true;
+	LockOnSwitchAccumulated = 0.0f;
+
+	NextLockOnSwitchTime = Now + LockOnSwitchCooldown;
+
+	if (ABSBaseCharacter* NextTarget = FindLockOnTargetInDirection(Direction))
+	{
+		SetCombatTarget(NextTarget);
+	}
+}
+
+void ABSPlayerCharacter::ResetLockOnSwitchInput()
+{
+	LockOnSwitchAccumulated = 0.0f;
+	LockOnGestureStartTime = 0.0;
+	LastLockOnSwitchInputTime = -1.0;
+	NextLockOnSwitchTime = 0.0;
+	bLockOnSwitchConsumed = false;
+}
+
+ABSBaseCharacter* ABSPlayerCharacter::FindLockOnTargetInDirection(int32 Direction) const
+{
+    APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+    UWorld* World = GetWorld();
+
+    if (!PlayerController || !World || !IsValid(LockOnTarget) || Direction == 0)
+    {
+        return nullptr;
+    }
+
+    Direction = Direction > 0 ? 1 : -1;
+
+    int32 Width = 0;
+    int32 Height = 0;
+
+    PlayerController->GetViewportSize(Width, Height);
+
+    if (Width <= 0 || Height <= 0)
+    {
+        return nullptr;
+    }
+
+    FVector2D CurrentScreen;
+    if (!PlayerController->ProjectWorldLocationToScreen(LockOnTarget->GetActorLocation(),CurrentScreen))
+    {
+        return nullptr;
+    }
+
+    TArray<FOverlapResult> Overlaps;
+
+    FCollisionObjectQueryParams ObjectParams;
+    ObjectParams.AddObjectTypesToQuery(LockOnObjectChannel);
+
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(this);
+
+    World->OverlapMultiByObjectType(
+        Overlaps,
+        GetActorLocation(),
+        FQuat::Identity,
+        ObjectParams,
+        FCollisionShape::MakeSphere(LockOnSearchRadius),
+        QueryParams);
+
+    ABSBaseCharacter* BestTarget = nullptr;
+    float BestScore = TNumericLimits<float>::Max();
+
+    TSet<ABSBaseCharacter*> CheckedActors;
+
+    const FVector ViewLocation = FollowCamera
+        ? FollowCamera->GetComponentLocation() : GetActorLocation();
+
+    const FVector ViewForward = FollowCamera
+        ? FollowCamera->GetForwardVector() : GetActorForwardVector();
+
+    const float MinDot = FMath::Cos(FMath::DegreesToRadians(LockOnMaxAngle));
+
+    for (const FOverlapResult& Overlap : Overlaps)
+    {
+        ABSBaseCharacter* Candidate = Cast<ABSBaseCharacter>(Overlap.GetActor());
+
+        if (!IsValid(Candidate) || Candidate == LockOnTarget || CheckedActors.Contains(Candidate))
+        {
+            continue;
+        }
+
+        // 같은 Actor의 여러 충돌 컴포넌트를 중복 검사하지 않음.
+        CheckedActors.Add(Candidate);
+
+        if (!IsLockOnTargetable(Candidate))
+        {
+            continue;
+        }
+
+        const FVector TargetLocation = Candidate->GetActorLocation();
+
+        if (FVector::DistSquared(GetActorLocation(), TargetLocation) > FMath::Square(LockOnSearchRadius))
+        {
+            continue;
+        }
+
+        const FVector ViewDirection = (TargetLocation - ViewLocation).GetSafeNormal();
+
+        if (FVector::DotProduct(ViewForward, ViewDirection) < MinDot)
+        {
+            continue;
+        }
+
+        FVector2D CandidateScreen;
+
+        if (!PlayerController->ProjectWorldLocationToScreen(TargetLocation, CandidateScreen))
+        {
+            continue;
+        }
+
+        // 화면 안에 있는 후보만 선택.
+        if (CandidateScreen.X < 0.0f || CandidateScreen.X > Width 
+        	|| CandidateScreen.Y < 0.0f || CandidateScreen.Y > Height)
+        {
+            continue;
+        }
+
+        const FVector2D ScreenDelta = CandidateScreen - CurrentScreen;
+
+        // 화면 가로 위치가 거의 겹치는 대상은 제외.
+        if (ScreenDelta.X * Direction <= Width * 0.01f)
+        {
+            continue;
+        }
+
+        if (!HasLineOfSightToTarget(Candidate))
+        {
+            continue;
+        }
+
+        // 가로로 가까운 대상을 우선하되 높이 차이도 고려.
+        const float Score = FMath::Abs(ScreenDelta.X) / Width + FMath::Abs(ScreenDelta.Y) / Height * 0.35f;
+
+        if (Score < BestScore)
+        {
+            BestScore = Score;
+            BestTarget = Candidate;
+        }
+    }
+
+    return BestTarget;
+}
+
 
 void ABSPlayerCharacter::OnDeathStarted(AActor *Killer)
 {
+	ClearCombatTarget();
 	Super::OnDeathStarted(Killer);
 }
 
@@ -535,34 +801,65 @@ void ABSPlayerCharacter::OnDeathFinished(AActor *Killer)
 
 void ABSPlayerCharacter::SetCombatTarget(AActor *NewTarget)
 {
-	LockOnTarget = Cast<ABSBaseCharacter>(NewTarget);
-	if (LockOnTarget)
+	ABSBaseCharacter* Candidate =Cast<ABSBaseCharacter>(NewTarget);
+	if (!IsLockOnTargetable(Candidate))
 	{
-		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
-		{
-		Movement->bOrientRotationToMovement = false;
-		Movement->bUseControllerDesiredRotation = true;
-		}
+		ClearCombatTarget();
+		return;
+	}
+	if (bLockOnActive && LockOnTarget == Candidate)
+	{
+		return;
+	}
+	LockOnTarget = Candidate;
+	if (!bLockOnActive)
+	{
+		bLockOnActive = true;
+
+		ResetLockOnSwitchInput();
+		StartLockOnUpdateTimer();
 		if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
 		{
 			BSASC->AddLooseGameplayTag(BSGameplayTags::State_LockOn);
 		}
+		if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+		{
+			Movement->bOrientRotationToMovement = false;
+			Movement->bUseControllerDesiredRotation = true;
+		}
 	}
+	bPlayingUnlockAnimation = false;
+	UpdateLockOnIndicator();
+	OnLockOnIndicatorStateChanged(true);
 }
 
 void ABSPlayerCharacter::ClearCombatTarget()
 {
+	const bool bWasLockedOn = bLockOnActive;
 	LockOnTarget = nullptr;
 	StopLockOnUpdateTimer();
+	if (bLockOnActive)
+	{
+		if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
+		{
+			BSASC->RemoveLooseGameplayTag(BSGameplayTags::State_LockOn);
+		}
+	}
+	bLockOnActive = false;
+	
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->bUseControllerDesiredRotation = false;
 		Movement->bOrientRotationToMovement = true;
 	}
-	if (UBSAbilitySystemComponent* BSASC = GetBSAbilitySystemComponent())
+	
+	ResetLockOnSwitchInput();
+	if (bWasLockedOn)
 	{
-		BSASC->RemoveLooseGameplayTag(BSGameplayTags::State_LockOn);
+		bPlayingUnlockAnimation = true;
+		OnLockOnIndicatorStateChanged(false);
 	}
+	UpdateLockOnIndicator();
 }
 
 void ABSPlayerCharacter::ApplyStaminaRegenDelay()
@@ -581,6 +878,17 @@ void ABSPlayerCharacter::ApplyStaminaRegenDelay()
 	{
 		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
+}
+
+void ABSPlayerCharacter::FinishLockOnIndicatorFadeOut()
+{
+	// 도중에 다시 락온했거나 이미 종료 처리했다면 무시.
+	if (bLockOnActive || !bPlayingUnlockAnimation)
+	{
+		return;
+	}
+	bPlayingUnlockAnimation = false;
+	UpdateLockOnIndicator();
 }
 
 AActor *ABSPlayerCharacter::GetCombatTarget() const

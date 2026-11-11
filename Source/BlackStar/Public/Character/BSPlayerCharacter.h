@@ -11,6 +11,7 @@ class UCameraComponent;
 class UAnimMontage;
 class UGameplayEffect;
 class UBSWeaponComponent;
+class UWidgetComponent;
 
 UCLASS()
 class BLACKSTAR_API ABSPlayerCharacter : public ABSBaseCharacter
@@ -78,6 +79,12 @@ protected:
 	bool bIsZoomInterpolating = false;
 
 	// ===== 락온 관련 =====
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LockOn|Indicator")
+	TObjectPtr<UWidgetComponent> LockOnIndicatorComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Indicator")
+	FVector LockOnIndicatorOffset = FVector(0.0f, 0.0f, 40.0f);
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LockOn")
 	TObjectPtr<ABSBaseCharacter> LockOnTarget = nullptr;
 
@@ -102,11 +109,38 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	TEnumAsByte<ECollisionChannel> LockOnTraceChannel = ECC_Visibility;
 
+	// 입력 누적량 기준. 화면 픽셀 단위는 아님.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Switch", meta = (ClampMin = "0.01"))
+	float LockOnSwitchThreshold = 8.0f;
+
+	// 이 시간 안의 같은 방향 입력을 누적.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Switch", meta = (ClampMin = "0.01"))
+	float LockOnSwitchInputWindow = 0.2f;
+
+	// 다시 전환하려면 좌우 움직임을 잠깐 멈춰야 함.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Switch", meta = (ClampMin = "0.01"))
+	float LockOnSwitchNeutralTime = 0.12f;
+
+	// 전환 시도 사이의 최소 간격.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Switch", meta = (ClampMin = "0.0"))
+	float LockOnSwitchCooldown = 0.25f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn|Debug")
 	bool bDrawLockOnDebug = false;
 
 	FTimerHandle LockOnUpdateTimerHandle;
+	
+	bool bLockOnActive = false;
+	bool bLockOnSwitchConsumed = false;
 
+	float LockOnSwitchAccumulated = 0.0f;
+	double LockOnGestureStartTime = 0.0f;
+	double LastLockOnSwitchInputTime = -1.0f;
+	double NextLockOnSwitchTime = 0.0f;
+
+	// 애니메이션 중복 방지 플래그
+	bool bPlayingUnlockAnimation = false;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "LockOn")
 	float LockOnUpdateInterval = 0.5f;
 	
@@ -126,6 +160,8 @@ protected:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent *PlayerInputComponent) override;
 
@@ -151,13 +187,25 @@ protected:
 
 	void StopEvadeMontageTail();
 	
+	void UpdateLockOnIndicator();
+	void HandleLockOnSwitchInput(float MouseDeltaX);
+	void ResetLockOnSwitchInput();
+	ABSBaseCharacter* FindLockOnTargetInDirection(int32 Direction) const;
+	
 	virtual void OnDeathStarted(AActor *Killer) override;
 	virtual void OnDeathFinished(AActor *Killer) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "LockOn")
+	void OnLockOnIndicatorStateChanged(bool bLockedOn);
+	
 public:
 	FVector2D GetCurrentMoveInput() const { return CurrentMoveInput; }
 	void ApplyStaminaRegenDelay();
 	float GetEvadeMontageBlendOutTime() const { return EvadeMontageBlendOutTime; }
+	
+	UFUNCTION(BlueprintCallable, Category = "LockOn")
+	void FinishLockOnIndicatorFadeOut();
+	
 	// ===== 인터페이스 함수 =====
 	UFUNCTION(BlueprintPure)
 	virtual AActor *GetCombatTarget() const override;

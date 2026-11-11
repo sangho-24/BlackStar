@@ -189,8 +189,15 @@ struct FSTTask_RandomPatrolInstanceData
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
 	float AcceptanceRadius = 80.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float TurnSpeed = 360.0f;
+	
 	FVector PatrolDestination = FVector::ZeroVector;
 	bool bHasPatrolDestination = false;
+	float TargetYaw = 0.0f;
+	bool bMoveRequested = false;
+	
+	
 };
 
 USTRUCT(meta = (DisplayName = "RandomPatrol", Category = "BlackStar|AI"))
@@ -210,7 +217,7 @@ struct FSTTask_RandomPatrol : public FStateTreeTaskCommonBase
 
 	virtual void ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
 	
-
+	static EStateTreeRunStatus StartPatrolMove(FInstanceDataType& InstanceData);
 };
 
 // ===== 루트 패트롤 =====
@@ -227,9 +234,12 @@ struct FSTTask_RoutePatrolInstanceData
 
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
 	float AcceptanceRadius = 80.0f;
+	
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float TurnSpeed = 360.0f;
 
 	FVector PatrolDestination = FVector::ZeroVector;
-
+	float TargetYaw = 0.0f;
 	bool bMoveRequested = false;
 };
 
@@ -252,6 +262,8 @@ struct FSTTask_RoutePatrol : public FStateTreeTaskCommonBase
 	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, float DeltaTime) const override;
 
 	virtual void ExitState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
+	
+	static EStateTreeRunStatus StartPatrolMove(FInstanceDataType& InstanceData);
 };
 
 // 대상 위치로 회전
@@ -265,6 +277,7 @@ struct FSTTask_RotateToLastKnownTargetLocationInstanceData
 
 	UPROPERTY(EditAnywhere, Category = "Parameter")
 	float TurnSpeed = 360.0f;
+
 };
 
 USTRUCT(meta = (DisplayName = "Rotate To Last Known Target Location", Category = "BlackStar|AI"))
